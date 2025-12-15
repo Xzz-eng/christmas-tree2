@@ -5,19 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>3D圣诞树 - 双引擎手势控制</title>
+    <title>3D圣诞树 - 稳定手势控制版</title>
     
     <!-- Three.js 核心库 -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <!-- Three.js 附加组件 -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <!-- 不再加载复杂的附加组件，以提高加载速度 -->
     
-    <!-- 手势识别双引擎 -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/handtrackjs@latest/dist/handtrack.min.js"></script>
+    <!-- 手势识别：使用更稳定的CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/vision_bundle.js"></script>
+    <script src="https://unpkg.com/handtrackjs@0.0.13/dist/handtrack.min.js"></script>
 
     <style>
         :root {
@@ -42,8 +38,6 @@
             width: 100vw;
             height: 100vh;
             touch-action: none;
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
         }
         
         #canvas-container { 
@@ -53,10 +47,6 @@
             top: 0; 
             left: 0; 
             z-index: 1; 
-            margin-top: calc(env(safe-area-inset-top) * -1);
-            margin-bottom: calc(env(safe-area-inset-bottom) * -1);
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
         }
         
         /* 加载界面 */
@@ -73,8 +63,6 @@
             align-items: center; 
             justify-content: center;
             transition: opacity 1s ease-out;
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
         }
         
         .loader-text {
@@ -102,40 +90,10 @@
             100% { transform: rotate(360deg); } 
         }
         
-        /* 手势控制界面 */
-        .gesture-controls {
-            position: fixed;
-            top: calc(15px + env(safe-area-inset-top));
-            left: 15px;
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid rgba(212, 175, 55, 0.4);
-            border-radius: 12px;
-            padding: 12px;
-            z-index: 20;
-            backdrop-filter: blur(10px);
-            color: #d4af37;
-            max-width: 300px;
-        }
-        
-        .gesture-title {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .gesture-list {
-            font-size: 11px;
-            line-height: 1.5;
-            color: rgba(212, 175, 55, 0.8);
-        }
-        
         /* 引擎状态指示器 */
         .engine-status {
             position: fixed;
-            top: calc(15px + env(safe-area-inset-top));
+            top: 15px;
             right: 15px;
             background: rgba(0, 0, 0, 0.7);
             color: #d4af37;
@@ -150,14 +108,10 @@
             border: 1px solid rgba(212, 175, 55, 0.3);
         }
         
-        .engine-icon {
-            font-size: 12px;
-        }
-        
         /* 摄像头界面 */
         .camera-container {
             position: fixed;
-            bottom: calc(15px + env(safe-area-inset-bottom));
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
             width: 140px;
@@ -167,20 +121,14 @@
             z-index: 15;
             border: 2px solid rgba(212, 175, 55, 0.3);
             box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
-            transition: all 0.3s ease;
             background: #000;
-        }
-        
-        .camera-container.active {
-            border-color: #d4af37;
-            box-shadow: 0 0 30px rgba(212, 175, 55, 0.4);
         }
         
         #camera-video {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transform: scaleX(-1); /* 镜像翻转 */
+            transform: scaleX(-1);
         }
         
         #camera-canvas {
@@ -191,30 +139,29 @@
             height: 100%;
         }
         
-        /* 手势状态 */
-        .hand-status {
+        /* 调试信息面板 */
+        .debug-panel {
             position: fixed;
-            bottom: calc(130px + env(safe-area-inset-bottom));
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            color: #d4af37;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            z-index: 20;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            bottom: 130px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #4ecdc4;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-family: monospace;
+            max-width: 200px;
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 25;
+            border: 1px solid rgba(78, 205, 196, 0.3);
+            display: none; /* 默认隐藏，调试时开启 */
         }
         
         /* 控制面板 */
         .control-panel {
             position: fixed;
-            bottom: calc(15px + env(safe-area-inset-bottom));
+            bottom: 15px;
             left: 15px;
             display: flex;
             gap: 10px;
@@ -234,7 +181,6 @@
             font-size: 18px;
             cursor: pointer;
             touch-action: manipulation;
-            transition: all 0.3s;
             backdrop-filter: blur(10px);
         }
         
@@ -243,83 +189,79 @@
             transform: scale(0.95);
         }
         
-        .control-btn.active {
-            background: rgba(212, 175, 55, 0.2);
-            border-color: #d4af37;
+        /* 状态指示器 */
+        .status-container {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 20;
         }
         
-        /* 状态提示 */
-        .status-hint {
+        .status-item {
+            background: rgba(0, 0, 0, 0.7);
+            color: #d4af37;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            max-width: 200px;
+        }
+        
+        /* 修复按钮 */
+        .fix-btn {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: #d4af37;
-            padding: 15px 25px;
+            background: rgba(212, 175, 55, 0.9);
+            color: #000;
+            padding: 15px 30px;
             border-radius: 10px;
-            text-align: center;
-            z-index: 25;
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            opacity: 0;
-            transition: opacity 0.5s;
-            pointer-events: none;
-        }
-        
-        .status-hint.show {
-            opacity: 1;
-        }
-        
-        /* 响应式调整 */
-        @media (max-width: 768px) {
-            .gesture-controls {
-                max-width: 250px;
-                font-size: 10px;
-            }
-            
-            .camera-container {
-                width: 120px;
-                height: 90px;
-            }
-            
-            .control-btn {
-                width: 40px;
-                height: 40px;
-                font-size: 16px;
-            }
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1000;
+            display: none;
+            border: none;
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.5);
         }
     </style>
 </head>
 <body>
     <div id="loader">
         <div class="spinner"></div>
-        <div class="loader-text">初始化双引擎手势识别...</div>
+        <div class="loader-text" id="loader-text">初始化中...</div>
     </div>
     
-    <!-- 状态提示 -->
-    <div class="status-hint" id="status-hint"></div>
+    <!-- 修复按钮 -->
+    <button class="fix-btn" id="fix-btn" onclick="forceRetryHandDetection()">重试手势识别</button>
+    
+    <!-- 调试面板 -->
+    <div class="debug-panel" id="debug-panel"></div>
 
     <div id="canvas-container"></div>
     
-    <!-- 手势控制说明 -->
-    <div class="gesture-controls">
-        <div class="gesture-title">
+    <!-- 状态容器 -->
+    <div class="status-container">
+        <div class="status-item" id="engine-status">
+            <span>⚙️</span>
+            <span>引擎: 初始化中...</span>
+        </div>
+        <div class="status-item" id="hand-status">
             <span>👋</span>
-            <span>手势控制指南</span>
+            <span>手势: 等待启动...</span>
         </div>
-        <div class="gesture-list">
-            <div>✊ 握拳 → 圣诞树形态</div>
-            <div>🖐️ 张开手 → 散开形态</div>
-            <div>🤏 捏合 → 放大照片</div>
-            <div>🔄 手移动 → 旋转场景</div>
+        <div class="status-item" id="camera-status">
+            <span>📷</span>
+            <span>摄像头: 关闭</span>
         </div>
-    </div>
-    
-    <!-- 引擎状态 -->
-    <div class="engine-status" id="engine-status">
-        <span class="engine-icon">⚙️</span>
-        <span id="engine-text">初始化中...</span>
     </div>
     
     <!-- 摄像头预览 -->
@@ -328,118 +270,135 @@
         <canvas id="camera-canvas"></canvas>
     </div>
     
-    <!-- 手势状态 -->
-    <div class="hand-status" id="hand-status">
-        <span>👋</span>
-        <span id="hand-text">等待手势识别启动...</span>
-    </div>
-    
     <!-- 控制面板 -->
     <div class="control-panel">
         <div class="control-btn" id="btn-tree" title="圣诞树形态">🎄</div>
         <div class="control-btn" id="btn-scatter" title="散开形态">✨</div>
-        <div class="control-btn" id="btn-toggle-camera" title="开关摄像头">📷</div>
-        <div class="control-btn" id="btn-reload-engine" title="重载识别引擎">🔄</div>
+        <div class="control-btn" id="btn-toggle-debug" title="显示调试信息">🐛</div>
+        <div class="control-btn" id="btn-simple-mode" title="简易手势模式">👐</div>
     </div>
 
     <script>
         // ==================== 配置参数 ====================
         const CONFIG = {
-            // 视觉配置
-            colors: {
-                bg: 0x000000, 
-                champagneGold: 0xffd966, 
-                deepGreen: 0x03180a,     
-                accentRed: 0x990000,     
-            },
-            
-            // 性能配置
+            // 简化3D场景以提高性能
             particles: {
-                count: window.innerWidth < 768 ? 150 : 300,
-                dustCount: window.innerWidth < 768 ? 300 : 600,
-                treeHeight: 14,  
-                treeRadius: 3    
+                count: 80,      // 大幅减少粒子数量
+                treeHeight: 12,
+                treeRadius: 3
             },
             
-            // 手势配置
+            // 手势引擎配置
             gesture: {
-                // 双引擎配置
-                enginePriority: ['mediapipe', 'handtrackjs'],
+                // 超时设置
+                mediaPipeTimeout: 10000,  // MediaPipe加载超时(10秒)
+                handTrackTimeout: 8000,   // Handtrack加载超时(8秒)
+                cameraTimeout: 5000,      // 摄像头超时(5秒)
                 
-                // 通用阈值
-                fistThreshold: 0.12,
-                openHandThreshold: 0.3,
-                pinchThreshold: 0.08,
-                rotationSensitivity: 2.0,
-                
-                // 稳定性设置
-                gestureBufferSize: 5,
-                gestureConfidence: 0.6,
-                cooldownMs: 800
+                // 重试配置
+                maxRetries: 2,
+                retryDelay: 2000
             }
         };
-        
+
         // ==================== 应用状态 ====================
         const STATE = {
             // 场景状态
             mode: 'TREE', // TREE, SCATTER, FOCUS
-            focusTarget: null,
             
             // 手势状态
-            hand: {
-                detected: false,
-                position: { x: 0, y: 0 },
-                gesture: 'NONE',
-                gestureHistory: [],
-                lastGestureTime: 0
-            },
+            handDetected: false,
+            simpleMode: false,  // 简易手势模式
             
             // 引擎状态
-            detectionEngine: null, // 'mediapipe', 'handtrackjs', null
-            engineLoaded: false,
+            currentEngine: null, // 'mediapipe', 'handtrack', 'simple', 'none'
+            retryCount: 0,
             
             // 系统状态
-            cameraEnabled: false,
-            autoRotate: true,
-            rotation: { x: 0, y: 0 }
+            cameraReady: false,
+            initializationComplete: false
         };
-        
+
         // ==================== 全局变量 ====================
-        // Three.js 变量
-        let scene, camera, renderer, composer;
-        let mainGroup, clock, particleSystem, photoMeshGroup;
-        
-        // 手势识别变量
+        let scene, camera, renderer;
+        let mainGroup, clock;
         let videoElement, canvasElement, canvasCtx;
-        let mediaPipeDetector = null;
-        let handTrackModel = null;
         let videoStream = null;
         
+        // ==================== 调试工具 ====================
+        const DEBUG = {
+            enabled: false,
+            logs: [],
+            
+            log: function(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = `[${timestamp}] ${message}`;
+                this.logs.push(logEntry);
+                
+                console.log(`%c${logEntry}`, 
+                    type === 'error' ? 'color: #ff6b6b' : 
+                    type === 'success' ? 'color: #4ecdc4' : 
+                    'color: #d4af37');
+                
+                if (this.enabled) {
+                    this.updatePanel();
+                }
+            },
+            
+            updatePanel: function() {
+                const panel = document.getElementById('debug-panel');
+                if (panel) {
+                    // 只显示最近10条日志
+                    const recentLogs = this.logs.slice(-10);
+                    panel.innerHTML = recentLogs.map(log => 
+                        `<div>${log}</div>`
+                    ).join('');
+                }
+            },
+            
+            showPanel: function() {
+                const panel = document.getElementById('debug-panel');
+                if (panel) {
+                    panel.style.display = 'block';
+                    this.updatePanel();
+                }
+            },
+            
+            hidePanel: function() {
+                const panel = document.getElementById('debug-panel');
+                if (panel) {
+                    panel.style.display = 'none';
+                }
+            }
+        };
+
         // ==================== 核心初始化 ====================
         async function init() {
             try {
-                console.log('=== 开始初始化应用 ===');
+                DEBUG.log('开始初始化应用');
                 
-                // 1. 初始化3D场景
+                // 1. 初始化3D场景（最简化）
                 initThreeJS();
-                console.log('✅ Three.js 初始化完成');
+                DEBUG.log('Three.js初始化完成', 'success');
                 
                 // 2. 设置3D环境
-                setupEnvironment();
-                setupLights();
-                createTextures();
-                createParticles();
-                createDust();
-                createDefaultPhotos();
-                setupPostProcessing();
+                setupScene();
+                createChristmasTree();
                 
-                // 3. 初始化手势识别（双引擎）
-                await initHandDetection();
+                // 3. 并行初始化手势识别和摄像头
+                await Promise.all([
+                    initHandDetection().catch(err => {
+                        DEBUG.log(`手势识别初始化失败: ${err.message}`, 'error');
+                    }),
+                    setupCamera().catch(err => {
+                        DEBUG.log(`摄像头初始化失败: ${err.message}`, 'error');
+                    })
+                ]);
                 
                 // 4. 设置UI事件
                 setupUIEvents();
                 
-                // 5. 完成初始化
+                // 5. 隐藏加载界面
                 setTimeout(() => {
                     const loader = document.getElementById('loader');
                     if (loader) {
@@ -451,267 +410,254 @@
                 // 6. 启动动画循环
                 animate();
                 
-                console.log('=== 应用初始化完成 ===');
+                DEBUG.log('应用初始化完成', 'success');
+                STATE.initializationComplete = true;
+                
             } catch (error) {
-                console.error('初始化失败:', error);
-                showStatusHint('初始化失败，请刷新页面', true);
+                DEBUG.log(`初始化过程出错: ${error.message}`, 'error');
+                showFixButton('初始化失败，点击重试');
             }
         }
-        
+
         // ==================== 3D场景初始化 ====================
         function initThreeJS() {
             const container = document.getElementById('canvas-container');
             
             // 创建场景
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(CONFIG.colors.bg);
-            scene.fog = new THREE.FogExp2(CONFIG.colors.bg, 0.02);
+            scene.background = new THREE.Color(0x000000);
             
             // 创建相机
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 2, CONFIG.particles.treeHeight * 1.5);
+            camera.position.set(0, 5, 20);
             
-            // 创建渲染器
+            // 创建渲染器（最简化配置）
             renderer = new THREE.WebGLRenderer({ 
-                antialias: true, 
-                alpha: false, 
+                antialias: true,
                 powerPreference: "high-performance"
             });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-            renderer.toneMapping = THREE.ReinhardToneMapping;
-            renderer.toneMappingExposure = 1.8;
             container.appendChild(renderer.domElement);
             
             // 创建主容器
             mainGroup = new THREE.Group();
             scene.add(mainGroup);
             
-            // 初始化其他变量
+            // 初始化时钟
             clock = new THREE.Clock();
-            particleSystem = [];
-            photoMeshGroup = new THREE.Group();
-            mainGroup.add(photoMeshGroup);
         }
-        
-        function setupEnvironment() {
-            // 简化的环境光
-            const ambient = new THREE.AmbientLight(0xffffff, 0.7);
-            scene.add(ambient);
+
+        function setupScene() {
+            // 环境光
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
             
-            const mainLight = new THREE.DirectionalLight(0xffeedd, 0.8);
-            mainLight.position.set(10, 20, 15);
-            scene.add(mainLight);
+            // 主光源
+            const directionalLight = new THREE.DirectionalLight(0xffeedd, 0.8);
+            directionalLight.position.set(10, 20, 15);
+            scene.add(directionalLight);
+            
+            // 点光源（树内）
+            const pointLight = new THREE.PointLight(0xffaa00, 1, 20);
+            pointLight.position.set(0, 5, 0);
+            mainGroup.add(pointLight);
         }
-        
-        function setupLights() {
-            const treeLight = new THREE.PointLight(0xffaa00, 1.5, 15);
-            treeLight.position.set(0, 5, 0);
-            mainGroup.add(treeLight);
+
+        function createChristmasTree() {
+            // 树干的材质
+            const trunkMaterial = new THREE.MeshStandardMaterial({
+                color: 0x8B4513,
+                roughness: 0.9
+            });
             
-            const rimLight = new THREE.DirectionalLight(0x6688ff, 0.4);
-            rimLight.position.set(-10, 5, -10);
-            scene.add(rimLight);
-        }
-        
-        function setupPostProcessing() {
-            // 移动端禁用后期处理
-            if (window.innerWidth < 768 || typeof THREE.EffectComposer === 'undefined') return;
+            // 创建树干
+            const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.5, 2, 8);
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.position.set(0, -1, 0);
+            mainGroup.add(trunk);
             
-            try {
-                const renderScene = new THREE.RenderPass(scene, camera);
-                const bloomPass = new THREE.UnrealBloomPass(
-                    new THREE.Vector2(window.innerWidth, window.innerHeight), 
-                    0.7, 0.4, 0.8
+            // 树叶的材质
+            const leafMaterial = new THREE.MeshStandardMaterial({
+                color: 0x228B22,
+                roughness: 0.8
+            });
+            
+            // 创建多层树叶（圆锥体）
+            const layers = 4;
+            for (let i = 0; i < layers; i++) {
+                const radius = 2 - i * 0.4;
+                const height = 2;
+                const yPos = i * 1.5;
+                
+                const coneGeometry = new THREE.ConeGeometry(radius, height, 8);
+                const cone = new THREE.Mesh(coneGeometry, leafMaterial);
+                cone.position.set(0, yPos, 0);
+                mainGroup.add(cone);
+            }
+            
+            // 树顶星星
+            const starGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+            const starMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffdd00,
+                emissive: 0xffaa00,
+                emissiveIntensity: 0.5
+            });
+            const star = new THREE.Mesh(starGeometry, starMaterial);
+            star.position.set(0, 7, 0);
+            mainGroup.add(star);
+            
+            // 装饰球
+            const ballMaterial = new THREE.MeshStandardMaterial({
+                color: 0xff4444,
+                roughness: 0.3,
+                metalness: 0.7
+            });
+            
+            const ballGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+            
+            // 在树上随机放置装饰球
+            for (let i = 0; i < 15; i++) {
+                const ball = new THREE.Mesh(ballGeometry, ballMaterial);
+                
+                // 随机位置（圆锥形分布）
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 2;
+                const height = Math.random() * 6;
+                
+                ball.position.set(
+                    Math.cos(angle) * radius,
+                    height,
+                    Math.sin(angle) * radius
                 );
                 
-                composer = new THREE.EffectComposer(renderer);
-                composer.addPass(renderScene);
-                composer.addPass(bloomPass);
-            } catch (error) {
-                console.warn('后期处理初始化失败:', error);
+                mainGroup.add(ball);
             }
         }
-        
-        // ==================== 手势识别双引擎 ====================
+
+        // ==================== 手势识别初始化 ====================
         async function initHandDetection() {
-            console.log('开始初始化手势识别引擎...');
+            DEBUG.log('开始初始化手势识别');
+            updateEngineStatus('初始化中...');
             
-            // 获取DOM元素
-            videoElement = document.getElementById('camera-video');
-            canvasElement = document.getElementById('camera-canvas');
-            canvasCtx = canvasElement.getContext('2d');
-            
-            // 设置Canvas尺寸
-            canvasElement.width = 140;
-            canvasElement.height = 105;
-            
-            // 1. 先初始化摄像头
             try {
-                await setupCamera();
-                console.log('✅ 摄像头初始化成功');
-                updateHandStatus('摄像头就绪，启动识别引擎...');
-            } catch (error) {
-                console.error('❌ 摄像头初始化失败:', error);
-                updateHandStatus('摄像头初始化失败');
-                showStatusHint('无法访问摄像头，请检查权限', true);
-                return;
-            }
-            
-            // 2. 按优先级尝试不同引擎
-            for (const engine of CONFIG.gesture.enginePriority) {
-                try {
-                    console.log(`尝试加载 ${engine}...`);
-                    updateEngineStatus(`正在加载 ${engine}...`);
-                    
-                    if (engine === 'mediapipe') {
-                        await initMediaPipe();
-                        STATE.detectionEngine = 'mediapipe';
-                        console.log('✅ MediaPipe 加载成功');
-                        updateEngineStatus('MediaPipe');
-                        updateHandStatus('高级手势识别已启动');
-                        showStatusHint('高级手势识别已启用', false);
-                        break; // 成功则退出循环
-                    } 
-                    else if (engine === 'handtrackjs') {
-                        await initHandTrackJS();
-                        STATE.detectionEngine = 'handtrackjs';
-                        console.log('✅ Handtrack.js 加载成功');
-                        updateEngineStatus('Handtrack.js');
-                        updateHandStatus('基础手势识别已启动');
-                        showStatusHint('基础手势识别已启用', false);
-                        break; // 成功则退出循环
-                    }
-                } catch (engineError) {
-                    console.warn(`${engine} 加载失败:`, engineError);
-                    continue; // 尝试下一个引擎
+                // 获取DOM元素
+                videoElement = document.getElementById('camera-video');
+                canvasElement = document.getElementById('camera-canvas');
+                canvasCtx = canvasElement.getContext('2d');
+                
+                if (!videoElement || !canvasElement) {
+                    throw new Error('未找到摄像头元素');
                 }
-            }
-            
-            // 3. 检查是否至少有一个引擎加载成功
-            if (!STATE.detectionEngine) {
-                console.error('❌ 所有手势识别引擎均失败');
-                updateEngineStatus('无可用引擎');
-                updateHandStatus('手势识别初始化失败');
-                showStatusHint('手势识别不可用，使用按钮控制', true);
-            } else {
-                STATE.engineLoaded = true;
-                console.log(`✅ 手势识别初始化完成，使用引擎: ${STATE.detectionEngine}`);
+                
+                // 设置Canvas尺寸
+                canvasElement.width = 140;
+                canvasElement.height = 105;
+                
+                DEBUG.log('摄像头元素准备完成');
+                
+                // 策略1：首先尝试MediaPipe
+                try {
+                    STATE.currentEngine = 'mediapipe';
+                    await initMediaPipeWithTimeout();
+                    updateEngineStatus('MediaPipe');
+                    DEBUG.log('MediaPipe引擎加载成功', 'success');
+                    return;
+                } catch (mediaPipeError) {
+                    DEBUG.log(`MediaPipe失败: ${mediaPipeError.message}`, 'error');
+                }
+                
+                // 策略2：如果MediaPipe失败，尝试Handtrack.js
+                try {
+                    STATE.currentEngine = 'handtrack';
+                    await initHandTrackWithTimeout();
+                    updateEngineStatus('Handtrack.js');
+                    DEBUG.log('Handtrack.js引擎加载成功', 'success');
+                    return;
+                } catch (handTrackError) {
+                    DEBUG.log(`Handtrack.js失败: ${handTrackError.message}`, 'error');
+                }
+                
+                // 策略3：如果两个引擎都失败，启用简易手势模式
+                STATE.currentEngine = 'simple';
+                initSimpleGestureMode();
+                updateEngineStatus('简易模式');
+                DEBUG.log('启用简易手势模式', 'success');
+                
+            } catch (error) {
+                DEBUG.log(`手势识别初始化完全失败: ${error.message}`, 'error');
+                STATE.currentEngine = 'none';
+                updateEngineStatus('无引擎');
+                throw error;
             }
         }
-        
-        // 摄像头初始化
-        async function setupCamera() {
+
+        // MediaPipe初始化（带超时）
+        function initMediaPipeWithTimeout() {
             return new Promise((resolve, reject) => {
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    reject(new Error('浏览器不支持摄像头访问'));
-                    return;
-                }
+                const timeout = setTimeout(() => {
+                    reject(new Error('MediaPipe加载超时'));
+                }, CONFIG.gesture.mediaPipeTimeout);
                 
-                const constraints = {
-                    video: {
-                        facingMode: 'user',
-                        width: { ideal: 640 },
-                        height: { ideal: 480 },
-                        frameRate: { ideal: 24 }
-                    }
-                };
-                
-                navigator.mediaDevices.getUserMedia(constraints)
-                    .then(stream => {
-                        videoStream = stream;
-                        videoElement.srcObject = stream;
-                        STATE.cameraEnabled = true;
-                        
-                        document.getElementById('camera-container').classList.add('active');
-                        
-                        videoElement.onloadedmetadata = () => {
-                            videoElement.play();
-                            resolve();
-                        };
-                        
-                        videoElement.onerror = () => {
-                            reject(new Error('视频播放失败'));
-                        };
-                    })
-                    .catch(error => {
-                        console.error('摄像头访问失败:', error);
-                        reject(error);
-                    });
+                initMediaPipe().then(() => {
+                    clearTimeout(timeout);
+                    resolve();
+                }).catch(error => {
+                    clearTimeout(timeout);
+                    reject(error);
+                });
             });
         }
-        
-        // MediaPipe 引擎初始化
+
         async function initMediaPipe() {
             return new Promise(async (resolve, reject) => {
                 try {
-                    // 检查是否已加载
+                    DEBUG.log('开始加载MediaPipe库');
+                    
+                    // 检查MediaPipe库是否加载
                     if (typeof window.FilesetResolver === 'undefined') {
                         reject(new Error('MediaPipe库未加载'));
                         return;
                     }
                     
-                    // 初始化MediaPipe
+                    DEBUG.log('创建MediaPipe解析器');
+                    
+                    // 创建Vision任务解析器
                     const vision = await window.FilesetResolver.forVisionTasks(
-                        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+                        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm"
                     );
                     
-                    mediaPipeDetector = await window.HandLandmarker.createFromOptions(vision, {
+                    DEBUG.log('加载手部标记模型');
+                    
+                    // 加载手部标记模型
+                    const handLandmarker = await window.HandLandmarker.createFromOptions(vision, {
                         baseOptions: {
                             modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
-                            delegate: "GPU"
+                            delegate: "CPU" // 使用CPU更稳定
                         },
                         runningMode: "VIDEO",
                         numHands: 1
                     });
                     
-                    // 启动检测循环
+                    DEBUG.log('MediaPipe模型加载完成');
+                    
+                    // 存储检测器并启动检测
+                    window.mediaPipeDetector = handLandmarker;
                     startMediaPipeDetection();
+                    
                     resolve();
+                    
                 } catch (error) {
-                    console.error('MediaPipe初始化失败:', error);
+                    DEBUG.log(`MediaPipe初始化错误: ${error.message}`, 'error');
                     reject(error);
                 }
             });
         }
-        
-        // Handtrack.js 引擎初始化
-        async function initHandTrackJS() {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    // 检查是否已加载
-                    if (typeof handTrack === 'undefined') {
-                        reject(new Error('Handtrack.js库未加载'));
-                        return;
-                    }
-                    
-                    // 加载模型
-                    const modelParams = {
-                        flipHorizontal: true,
-                        maxNumBoxes: 1,
-                        scoreThreshold: 0.7,
-                        iouThreshold: 0.5,
-                        modelType: "ssd320fpnlite",
-                    };
-                    
-                    handTrackModel = await handTrack.load(modelParams);
-                    
-                    // 启动检测循环
-                    startHandTrackDetection();
-                    resolve();
-                } catch (error) {
-                    console.error('Handtrack.js初始化失败:', error);
-                    reject(error);
-                }
-            });
-        }
-        
-        // MediaPipe 检测循环
+
         function startMediaPipeDetection() {
             let lastVideoTime = -1;
             
             function detectFrame() {
-                if (!STATE.cameraEnabled || !mediaPipeDetector || STATE.detectionEngine !== 'mediapipe') {
+                if (!STATE.cameraReady || !window.mediaPipeDetector || STATE.currentEngine !== 'mediapipe') {
                     return;
                 }
                 
@@ -720,11 +666,10 @@
                     lastVideoTime = currentTime;
                     
                     try {
-                        const results = mediaPipeDetector.detectForVideo(videoElement, performance.now());
+                        const results = window.mediaPipeDetector.detectForVideo(videoElement, performance.now());
                         processMediaPipeResults(results);
-                        drawMediaPipeResults(results);
                     } catch (error) {
-                        console.error('MediaPipe检测错误:', error);
+                        DEBUG.log(`MediaPipe检测错误: ${error.message}`, 'error');
                     }
                 }
                 
@@ -733,661 +678,435 @@
             
             detectFrame();
         }
-        
-        // Handtrack.js 检测循环
-        function startHandTrackDetection() {
-            function detectFrame() {
-                if (!STATE.cameraEnabled || !handTrackModel || STATE.detectionEngine !== 'handtrackjs') {
-                    return;
-                }
-                
-                handTrackModel.detect(videoElement).then(predictions => {
-                    processHandTrackResults(predictions);
-                    drawHandTrackResults(predictions);
-                    
-                    if (STATE.detectionEngine === 'handtrackjs') {
-                        requestAnimationFrame(detectFrame);
-                    }
-                }).catch(error => {
-                    console.error('Handtrack.js检测错误:', error);
-                    setTimeout(detectFrame, 1000);
-                });
-            }
-            
-            detectFrame();
-        }
-        
-        // ==================== 手势处理逻辑 ====================
-        // 处理MediaPipe结果
+
         function processMediaPipeResults(results) {
             if (!results.landmarks || results.landmarks.length === 0) {
-                STATE.hand.detected = false;
+                STATE.handDetected = false;
                 updateHandStatus('未检测到手部');
                 return;
             }
             
-            STATE.hand.detected = true;
+            STATE.handDetected = true;
+            
+            // 简化手势识别逻辑
             const landmarks = results.landmarks[0];
-            
-            // 手势识别逻辑
-            const gesture = recognizeMediaPipeGesture(landmarks);
-            updateGestureState(gesture);
-            
-            // 手部位置跟踪（用于旋转控制）
-            const wrist = landmarks[0];
-            STATE.hand.position.x = wrist.x;
-            STATE.hand.position.y = wrist.y;
-        }
-        
-        // 处理Handtrack.js结果
-        function processHandTrackResults(predictions) {
-            if (!predictions || predictions.length === 0) {
-                STATE.hand.detected = false;
-                updateHandStatus('未检测到手部');
-                return;
-            }
-            
-            STATE.hand.detected = true;
-            const bbox = predictions[0].bbox;
-            
-            // 计算手部中心位置
-            const centerX = bbox[0] + bbox[2] / 2;
-            const centerY = bbox[1] + bbox[3] / 2;
-            
-            STATE.hand.position.x = centerX / canvasElement.width;
-            STATE.hand.position.y = centerY / canvasElement.height;
-            
-            // 简化的手势识别（基于检测框大小）
-            const handArea = bbox[2] * bbox[3];
-            let gesture = 'NONE';
-            
-            if (handArea > 8000) gesture = 'OPEN';
-            else if (handArea < 4000) gesture = 'FIST';
-            
-            updateGestureState(gesture);
-        }
-        
-        // 识别MediaPipe手势
-        function recognizeMediaPipeGesture(landmarks) {
-            // 简化的手势识别逻辑
-            // 在实际应用中，这里应该有更复杂的手势识别算法
             const thumbTip = landmarks[4];
             const indexTip = landmarks[8];
-            const middleTip = landmarks[12];
-            const wrist = landmarks[0];
             
-            // 计算距离
+            // 计算拇指和食指距离
             const pinchDist = Math.sqrt(
                 Math.pow(thumbTip.x - indexTip.x, 2) + 
                 Math.pow(thumbTip.y - indexTip.y, 2)
             );
             
             // 手势判断
-            if (pinchDist < 0.05) return 'PINCH';
-            
-            // 其他手势判断...
-            return 'NONE';
+            if (pinchDist < 0.05) {
+                // 捏合手势 - 切换到散开模式
+                if (STATE.mode !== 'SCATTER') {
+                    STATE.mode = 'SCATTER';
+                    updateHandStatus('🤏 捏合 → 散开');
+                }
+            } else {
+                // 张开手 - 切换到树模式
+                if (STATE.mode !== 'TREE') {
+                    STATE.mode = 'TREE';
+                    updateHandStatus('🖐️ 张开 → 圣诞树');
+                }
+            }
         }
-        
-        // 更新手势状态
-        function updateGestureState(gesture) {
-            // 手势冷却
-            const now = Date.now();
-            if (now - STATE.hand.lastGestureTime < CONFIG.gesture.cooldownMs) {
+
+        // Handtrack.js初始化（带超时）
+        function initHandTrackWithTimeout() {
+            return new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('Handtrack.js加载超时'));
+                }, CONFIG.gesture.handTrackTimeout);
+                
+                initHandTrack().then(() => {
+                    clearTimeout(timeout);
+                    resolve();
+                }).catch(error => {
+                    clearTimeout(timeout);
+                    reject(error);
+                });
+            });
+        }
+
+        async function initHandTrack() {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    DEBUG.log('开始加载Handtrack.js库');
+                    
+                    // 检查Handtrack.js库是否加载
+                    if (typeof handTrack === 'undefined') {
+                        reject(new Error('Handtrack.js库未加载'));
+                        return;
+                    }
+                    
+                    DEBUG.log('加载Handtrack.js模型');
+                    
+                    // 加载模型
+                    const modelParams = {
+                        flipHorizontal: true,
+                        maxNumBoxes: 1,
+                        scoreThreshold: 0.7,
+                        iouThreshold: 0.5
+                    };
+                    
+                    window.handTrackModel = await handTrack.load(modelParams);
+                    
+                    DEBUG.log('Handtrack.js模型加载完成');
+                    
+                    // 启动检测
+                    startHandTrackDetection();
+                    
+                    resolve();
+                    
+                } catch (error) {
+                    DEBUG.log(`Handtrack.js初始化错误: ${error.message}`, 'error');
+                    reject(error);
+                }
+            });
+        }
+
+        function startHandTrackDetection() {
+            function detectFrame() {
+                if (!STATE.cameraReady || !window.handTrackModel || STATE.currentEngine !== 'handtrack') {
+                    return;
+                }
+                
+                window.handTrackModel.detect(videoElement).then(predictions => {
+                    processHandTrackResults(predictions);
+                    
+                    if (STATE.currentEngine === 'handtrack') {
+                        requestAnimationFrame(detectFrame);
+                    }
+                }).catch(error => {
+                    DEBUG.log(`Handtrack.js检测错误: ${error.message}`, 'error');
+                    setTimeout(detectFrame, 1000);
+                });
+            }
+            
+            detectFrame();
+        }
+
+        function processHandTrackResults(predictions) {
+            if (!predictions || predictions.length === 0) {
+                STATE.handDetected = false;
+                updateHandStatus('未检测到手部');
                 return;
             }
             
-            // 添加到历史记录
-            STATE.hand.gestureHistory.push(gesture);
-            if (STATE.hand.gestureHistory.length > CONFIG.gesture.gestureBufferSize) {
-                STATE.hand.gestureHistory.shift();
-            }
+            STATE.handDetected = true;
             
-            // 从历史记录中确定最频繁的手势
-            const gestureCount = {};
-            STATE.hand.gestureHistory.forEach(g => {
-                gestureCount[g] = (gestureCount[g] || 0) + 1;
-            });
+            // 简化的手势判断（基于检测框大小）
+            const bbox = predictions[0].bbox;
+            const handArea = bbox[2] * bbox[3];
             
-            let finalGesture = 'NONE';
-            let maxCount = 0;
-            for (const [g, count] of Object.entries(gestureCount)) {
-                if (count > maxCount) {
-                    maxCount = count;
-                    finalGesture = g;
+            // 根据手部区域判断手势
+            if (handArea > 8000) {
+                // 大手势 - 切换到散开模式
+                if (STATE.mode !== 'SCATTER') {
+                    STATE.mode = 'SCATTER';
+                    updateHandStatus('🖐️ 大手势 → 散开');
+                }
+            } else if (handArea < 4000) {
+                // 小手势 - 切换到树模式
+                if (STATE.mode !== 'TREE') {
+                    STATE.mode = 'TREE';
+                    updateHandStatus('✊ 小手势 → 圣诞树');
                 }
             }
-            
-            // 应用手势
-            if (finalGesture !== 'NONE' && finalGesture !== STATE.hand.gesture) {
-                STATE.hand.gesture = finalGesture;
-                STATE.hand.lastGestureTime = now;
-                
-                applyGesture(finalGesture);
-                updateHandStatus(getGestureText(finalGesture));
-            }
         }
-        
-        // 应用手势到场景
-        function applyGesture(gesture) {
-            switch (gesture) {
-                case 'FIST':
-                    if (STATE.mode !== 'TREE') {
-                        STATE.mode = 'TREE';
-                        STATE.autoRotate = true;
-                        showStatusHint('切换到圣诞树形态', false);
-                    }
-                    break;
-                    
-                case 'OPEN':
+
+        // 简易手势模式
+        function initSimpleGestureMode() {
+            STATE.simpleMode = true;
+            
+            // 通过摄像头图像分析实现简易手势
+            function simpleGestureDetection() {
+                if (!STATE.cameraReady || STATE.currentEngine !== 'simple') {
+                    return;
+                }
+                
+                // 绘制当前帧到Canvas
+                canvasCtx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+                
+                // 获取图像数据
+                const imageData = canvasCtx.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                const data = imageData.data;
+                
+                // 简化的手势检测：基于图像亮度变化
+                let brightness = 0;
+                for (let i = 0; i < data.length; i += 4) {
+                    brightness += (data[i] + data[i + 1] + data[i + 2]) / 3;
+                }
+                brightness /= (data.length / 4);
+                
+                // 如果亮度有显著变化，认为是手势
+                if (brightness > 100) { // 高亮度可能表示手靠近
                     if (STATE.mode !== 'SCATTER') {
                         STATE.mode = 'SCATTER';
-                        STATE.autoRotate = false;
-                        showStatusHint('切换到散开形态', false);
+                        updateHandStatus('👐 检测到手势 → 散开');
                     }
-                    break;
-                    
-                case 'PINCH':
-                    if (STATE.mode === 'SCATTER') {
-                        const photos = particleSystem.filter(p => p.type === 'PHOTO');
-                        if (photos.length > 0) {
-                            STATE.mode = 'FOCUS';
-                            STATE.focusTarget = photos[Math.floor(Math.random() * photos.length)].mesh;
-                            showStatusHint('放大照片', false);
-                        }
+                } else {
+                    if (STATE.mode !== 'TREE') {
+                        STATE.mode = 'TREE';
+                        updateHandStatus('👐 手势消失 → 圣诞树');
                     }
-                    break;
+                }
+                
+                requestAnimationFrame(simpleGestureDetection);
             }
             
-            updateSceneMode();
+            simpleGestureDetection();
+            updateHandStatus('简易手势模式已启用');
         }
-        
-        // ==================== 绘图函数 ====================
-        function drawMediaPipeResults(results) {
-            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            
-            if (!results.landmarks || results.landmarks.length === 0) return;
-            
-            // 绘制手势识别结果
-            const landmarks = results.landmarks[0];
-            const connections = window.HAND_CONNECTIONS || [];
-            
-            // 绘制连接线
-            canvasCtx.strokeStyle = '#00ff00';
-            canvasCtx.lineWidth = 2;
-            
-            connections.forEach(([start, end]) => {
-                const startPoint = landmarks[start];
-                const endPoint = landmarks[end];
+
+        // ==================== 摄像头初始化 ====================
+        async function setupCamera() {
+            return new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('摄像头初始化超时'));
+                }, CONFIG.gesture.cameraTimeout);
                 
-                canvasCtx.beginPath();
-                canvasCtx.moveTo(startPoint.x * canvasElement.width, startPoint.y * canvasElement.height);
-                canvasCtx.lineTo(endPoint.x * canvasElement.width, endPoint.y * canvasElement.height);
-                canvasCtx.stroke();
+                initializeCamera().then(() => {
+                    clearTimeout(timeout);
+                    resolve();
+                }).catch(error => {
+                    clearTimeout(timeout);
+                    reject(error);
+                });
             });
         }
-        
-        function drawHandTrackResults(predictions) {
-            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            
-            if (!predictions || predictions.length === 0) return;
-            
-            // 绘制检测框
-            const bbox = predictions[0].bbox;
-            canvasCtx.strokeStyle = '#ff4444';
-            canvasCtx.lineWidth = 2;
-            canvasCtx.strokeRect(bbox[0], bbox[1], bbox[2], bbox[3]);
-            
-            // 绘制手势标签
-            canvasCtx.fillStyle = '#ff4444';
-            canvasCtx.font = '12px Arial';
-            canvasCtx.fillText(STATE.hand.gesture, bbox[0], bbox[1] - 5);
+
+        function initializeCamera() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    reject(new Error('浏览器不支持摄像头'));
+                    return;
+                }
+                
+                DEBUG.log('请求摄像头权限');
+                
+                navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 320 },
+                        height: { ideal: 240 }
+                    },
+                    audio: false
+                }).then(stream => {
+                    videoStream = stream;
+                    videoElement.srcObject = stream;
+                    
+                    videoElement.onloadedmetadata = () => {
+                        DEBUG.log('摄像头已就绪', 'success');
+                        STATE.cameraReady = true;
+                        updateCameraStatus('就绪');
+                        resolve();
+                    };
+                    
+                    videoElement.onerror = () => {
+                        reject(new Error('视频播放失败'));
+                    };
+                    
+                }).catch(error => {
+                    DEBUG.log(`摄像头访问失败: ${error.message}`, 'error');
+                    reject(error);
+                });
+            });
         }
-        
+
         // ==================== UI更新函数 ====================
         function updateEngineStatus(text) {
-            const engineText = document.getElementById('engine-text');
             const engineStatus = document.getElementById('engine-status');
-            
-            if (engineText) engineText.textContent = text;
-            
-            // 根据引擎状态改变颜色
             if (engineStatus) {
+                const span = engineStatus.querySelector('span:last-child');
+                if (span) {
+                    span.textContent = `引擎: ${text}`;
+                }
+                
+                // 根据状态改变颜色
                 if (text.includes('MediaPipe')) {
                     engineStatus.style.borderColor = 'rgba(66, 133, 244, 0.6)';
                 } else if (text.includes('Handtrack')) {
                     engineStatus.style.borderColor = 'rgba(255, 107, 107, 0.6)';
+                } else if (text.includes('简易')) {
+                    engineStatus.style.borderColor = 'rgba(78, 205, 196, 0.6)';
                 } else {
                     engineStatus.style.borderColor = 'rgba(212, 175, 55, 0.3)';
                 }
             }
         }
-        
+
         function updateHandStatus(text) {
-            const handText = document.getElementById('hand-text');
-            if (handText) handText.textContent = text;
+            const handStatus = document.getElementById('hand-status');
+            if (handStatus) {
+                const span = handStatus.querySelector('span:last-child');
+                if (span) {
+                    span.textContent = `手势: ${text}`;
+                }
+                
+                // 根据状态改变颜色
+                if (text.includes('未检测') || text.includes('等待')) {
+                    handStatus.style.borderColor = 'rgba(255, 107, 107, 0.3)';
+                } else {
+                    handStatus.style.borderColor = 'rgba(78, 205, 196, 0.6)';
+                }
+            }
         }
-        
-        function getGestureText(gesture) {
-            const texts = {
-                'FIST': '✊ 握拳',
-                'OPEN': '🖐️ 张开手',
-                'PINCH': '🤏 捏合',
-                'NONE': '👋 等待手势'
-            };
-            return texts[gesture] || gesture;
+
+        function updateCameraStatus(text) {
+            const cameraStatus = document.getElementById('camera-status');
+            if (cameraStatus) {
+                const span = cameraStatus.querySelector('span:last-child');
+                if (span) {
+                    span.textContent = `摄像头: ${text}`;
+                }
+                
+                // 根据状态改变颜色
+                if (text === '就绪') {
+                    cameraStatus.style.borderColor = 'rgba(78, 205, 196, 0.6)';
+                } else {
+                    cameraStatus.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+                }
+            }
         }
-        
-        function showStatusHint(text, isError = false) {
-            const hint = document.getElementById('status-hint');
-            if (!hint) return;
-            
-            hint.textContent = text;
-            hint.style.color = isError ? '#ff6b6b' : '#d4af37';
-            hint.style.borderColor = isError ? 'rgba(255, 107, 107, 0.3)' : 'rgba(212, 175, 55, 0.3)';
-            hint.classList.add('show');
-            
-            setTimeout(() => {
-                hint.classList.remove('show');
-            }, 2000);
+
+        function showFixButton(text) {
+            const fixBtn = document.getElementById('fix-btn');
+            if (fixBtn) {
+                fixBtn.textContent = text;
+                fixBtn.style.display = 'block';
+            }
         }
-        
+
+        function hideFixButton() {
+            const fixBtn = document.getElementById('fix-btn');
+            if (fixBtn) {
+                fixBtn.style.display = 'none';
+            }
+        }
+
         // ==================== UI事件处理 ====================
         function setupUIEvents() {
             // 控制按钮
             document.getElementById('btn-tree').addEventListener('click', () => {
                 STATE.mode = 'TREE';
-                STATE.autoRotate = true;
-                updateSceneMode();
-                showStatusHint('切换到圣诞树形态', false);
+                DEBUG.log('手动切换到圣诞树模式');
             });
             
             document.getElementById('btn-scatter').addEventListener('click', () => {
                 STATE.mode = 'SCATTER';
-                STATE.autoRotate = false;
-                updateSceneMode();
-                showStatusHint('切换到散开形态', false);
+                DEBUG.log('手动切换到散开模式');
             });
             
-            document.getElementById('btn-toggle-camera').addEventListener('click', toggleCamera);
-            document.getElementById('btn-reload-engine').addEventListener('click', reloadHandDetection);
+            document.getElementById('btn-toggle-debug').addEventListener('click', () => {
+                DEBUG.enabled = !DEBUG.enabled;
+                if (DEBUG.enabled) {
+                    DEBUG.showPanel();
+                    DEBUG.log('调试模式已开启');
+                } else {
+                    DEBUG.hidePanel();
+                }
+            });
+            
+            document.getElementById('btn-simple-mode').addEventListener('click', () => {
+                if (STATE.currentEngine !== 'simple') {
+                    STATE.currentEngine = 'simple';
+                    initSimpleGestureMode();
+                    DEBUG.log('手动切换到简易手势模式');
+                }
+            });
             
             // 窗口调整
             window.addEventListener('resize', onWindowResize);
+            
+            // 修复按钮点击事件
+            document.getElementById('fix-btn').addEventListener('click', forceRetryHandDetection);
         }
-        
-        function toggleCamera() {
-            if (!STATE.cameraEnabled) {
-                initHandDetection();
-            } else {
-                if (videoStream) {
-                    videoStream.getTracks().forEach(track => track.stop());
-                    videoStream = null;
-                }
-                videoElement.srcObject = null;
-                STATE.cameraEnabled = false;
-                document.getElementById('camera-container').classList.remove('active');
-                updateHandStatus('摄像头已关闭');
-            }
-        }
-        
-        async function reloadHandDetection() {
-            showStatusHint('重新加载手势识别引擎...', false);
+
+        function forceRetryHandDetection() {
+            DEBUG.log('手动重试手势识别');
+            hideFixButton();
+            
+            // 重置状态
+            STATE.currentEngine = null;
+            STATE.retryCount = 0;
             
             // 清理现有引擎
-            if (mediaPipeDetector) {
-                mediaPipeDetector.close();
-                mediaPipeDetector = null;
+            if (window.mediaPipeDetector) {
+                window.mediaPipeDetector.close();
+                window.mediaPipeDetector = null;
             }
             
-            if (handTrackModel) {
-                handTrackModel.dispose();
-                handTrackModel = null;
+            if (window.handTrackModel) {
+                window.handTrackModel.dispose();
+                window.handTrackModel = null;
             }
             
             // 重新初始化
-            STATE.detectionEngine = null;
-            STATE.engineLoaded = false;
-            
-            await initHandDetection();
+            initHandDetection().catch(error => {
+                DEBUG.log(`重试失败: ${error.message}`, 'error');
+                showFixButton('重试失败，点击再次尝试');
+            });
         }
-        
+
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            
-            if (composer) {
-                composer.setSize(window.innerWidth, window.innerHeight);
-            }
         }
-        
-        // ==================== 3D粒子系统 ====================
-        class Particle {
-            constructor(mesh, type) {
-                this.mesh = mesh;
-                this.type = type;
-                this.isPhoto = type === 'PHOTO';
-                
-                // 计算初始位置
-                this.calculatePositions();
-                
-                // 随机旋转速度
-                this.spinSpeed = new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.5,
-                    (Math.random() - 0.5) * 0.5,
-                    (Math.random() - 0.5) * 0.5
-                );
-            }
-            
-            calculatePositions() {
-                const h = CONFIG.particles.treeHeight;
-                const halfH = h / 2;
-                let t = Math.random();
-                t = Math.pow(t, 0.8);
-                const y = (t * h) - halfH;
-                let rMax = CONFIG.particles.treeRadius * (1.0 - t);
-                if (rMax < 0.2) rMax = 0.2;
-                const angle = t * 25 * Math.PI + Math.random() * Math.PI;
-                const r = rMax * (0.8 + Math.random() * 0.4);
-                
-                // 圣诞树位置
-                this.treePos = new THREE.Vector3(
-                    Math.cos(angle) * r,
-                    y,
-                    Math.sin(angle) * r
-                );
-                
-                // 散开位置
-                const scatterR = 8 + Math.random() * 4;
-                const scatterTheta = Math.random() * Math.PI * 2;
-                const scatterPhi = Math.acos(2 * Math.random() - 1);
-                
-                this.scatterPos = new THREE.Vector3(
-                    scatterR * Math.sin(scatterPhi) * Math.cos(scatterTheta),
-                    scatterR * Math.sin(scatterPhi) * Math.sin(scatterTheta),
-                    scatterR * Math.cos(scatterPhi)
-                );
-                
-                // 焦点位置
-                this.focusPos = new THREE.Vector3(
-                    (Math.random() - 0.5) * 15,
-                    (Math.random() - 0.5) * 8,
-                    5 + Math.random() * 5
-                );
-            }
-            
-            update(dt) {
-                let targetPos, targetScale, lookAtCamera = false;
-                
-                switch (STATE.mode) {
-                    case 'TREE':
-                        targetPos = this.treePos;
-                        targetScale = this.isPhoto ? 0.4 : 0.15;
-                        break;
-                        
-                    case 'SCATTER':
-                        targetPos = this.scatterPos;
-                        targetScale = this.isPhoto ? 0.6 : 0.2;
-                        
-                        // 添加旋转
-                        this.mesh.rotation.x += this.spinSpeed.x * dt;
-                        this.mesh.rotation.y += this.spinSpeed.y * dt;
-                        this.mesh.rotation.z += this.spinSpeed.z * dt;
-                        break;
-                        
-                    case 'FOCUS':
-                        if (this.mesh === STATE.focusTarget) {
-                            targetPos = new THREE.Vector3(0, 0, 10);
-                            targetScale = 2.5;
-                            lookAtCamera = true;
-                        } else {
-                            targetPos = this.focusPos;
-                            targetScale = this.isPhoto ? 0.3 : 0.1;
-                        }
-                        break;
-                }
-                
-                // 平滑过渡
-                const lerpSpeed = (STATE.mode === 'FOCUS' && this.mesh === STATE.focusTarget) ? 5.0 : 2.0;
-                this.mesh.position.lerp(targetPos, lerpSpeed * dt);
-                
-                const targetScaleVec = new THREE.Vector3(targetScale, targetScale, targetScale);
-                this.mesh.scale.lerp(targetScaleVec, lerpSpeed * dt);
-                
-                if (lookAtCamera) {
-                    this.mesh.lookAt(camera.position);
-                }
-            }
-        }
-        
-        function createTextures() {
-            // 创建简单的纹理
-            const canvas = document.createElement('canvas');
-            canvas.width = 64;
-            canvas.height = 64;
-            const ctx = canvas.getContext('2d');
-            
-            // 创建条纹纹理
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 64, 64);
-            ctx.fillStyle = '#880000';
-            ctx.beginPath();
-            for (let i = -64; i < 128; i += 16) {
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i + 16, 64);
-                ctx.lineTo(i + 8, 64);
-                ctx.lineTo(i - 8, 0);
-            }
-            ctx.fill();
-            
-            // 创建纹理
-            caneTexture = new THREE.CanvasTexture(canvas);
-            caneTexture.wrapS = caneTexture.wrapT = THREE.RepeatWrapping;
-            caneTexture.repeat.set(2, 2);
-        }
-        
-        function createParticles() {
-            // 材质
-            const goldMat = new THREE.MeshStandardMaterial({
-                color: CONFIG.colors.champagneGold,
-                metalness: 0.7,
-                roughness: 0.3
-            });
-            
-            const greenMat = new THREE.MeshStandardMaterial({
-                color: CONFIG.colors.deepGreen,
-                roughness: 0.8
-            });
-            
-            const redMat = new THREE.MeshStandardMaterial({
-                color: CONFIG.colors.accentRed,
-                metalness: 0.3,
-                roughness: 0.4
-            });
-            
-            const candyMat = new THREE.MeshStandardMaterial({
-                map: caneTexture,
-                roughness: 0.6
-            });
-            
-            // 几何体
-            const sphereGeo = new THREE.SphereGeometry(0.15, 8, 8);
-            const boxGeo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
-            
-            // 创建装饰粒子
-            for (let i = 0; i < CONFIG.particles.count; i++) {
-                const rand = Math.random();
-                let mesh, type = 'DECORATION';
-                
-                if (rand < 0.4) {
-                    mesh = new THREE.Mesh(boxGeo, greenMat);
-                } else if (rand < 0.7) {
-                    mesh = new THREE.Mesh(boxGeo, goldMat);
-                } else if (rand < 0.9) {
-                    mesh = new THREE.Mesh(sphereGeo, goldMat);
-                } else {
-                    mesh = new THREE.Mesh(sphereGeo, redMat);
-                }
-                
-                mesh.castShadow = true;
-                mainGroup.add(mesh);
-                particleSystem.push(new Particle(mesh, type));
-            }
-            
-            // 创建树顶星星
-            const starGeo = new THREE.OctahedronGeometry(0.4, 0);
-            const starMat = new THREE.MeshStandardMaterial({
-                color: 0xffdd88,
-                emissive: 0xffaa00,
-                emissiveIntensity: 0.8
-            });
-            const star = new THREE.Mesh(starGeo, starMat);
-            star.position.set(0, CONFIG.particles.treeHeight / 2 + 0.3, 0);
-            mainGroup.add(star);
-        }
-        
-        function createDust() {
-            const dustGeo = new THREE.TetrahedronGeometry(0.05, 0);
-            const dustMat = new THREE.MeshBasicMaterial({
-                color: 0xffeebb,
-                transparent: true,
-                opacity: 0.4
-            });
-            
-            for (let i = 0; i < CONFIG.particles.dustCount; i++) {
-                const dust = new THREE.Mesh(dustGeo, dustMat);
-                dust.scale.setScalar(0.5 + Math.random() * 0.5);
-                dust.position.set(
-                    (Math.random() - 0.5) * 20,
-                    (Math.random() - 0.5) * 20,
-                    (Math.random() - 0.5) * 20
-                );
-                mainGroup.add(dust);
-                particleSystem.push(new Particle(dust, 'DUST'));
-            }
-        }
-        
-        function createDefaultPhotos() {
-            const photos = [
-                { text: "圣诞\n快乐", color: "#d4af37" },
-                { text: "新年\n快乐", color: "#4ecdc4" },
-                { text: "平安\n喜乐", color: "#ff6b6b" }
-            ];
-            
-            photos.forEach(photo => {
-                const canvas = document.createElement('canvas');
-                canvas.width = 256;
-                canvas.height = 256;
-                const ctx = canvas.getContext('2d');
-                
-                // 背景
-                ctx.fillStyle = '#1a1a1a';
-                ctx.fillRect(0, 0, 256, 256);
-                
-                // 边框
-                ctx.strokeStyle = photo.color;
-                ctx.lineWidth = 8;
-                ctx.strokeRect(12, 12, 232, 232);
-                
-                // 文字
-                ctx.fillStyle = photo.color;
-                ctx.font = 'bold 36px "Microsoft YaHei", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                
-                const lines = photo.text.split('\n');
-                lines.forEach((line, i) => {
-                    ctx.fillText(line, 128, 128 - 25 + (i * 50));
-                });
-                
-                // 创建照片网格
-                const texture = new THREE.CanvasTexture(canvas);
-                texture.colorSpace = THREE.SRGBColorSpace;
-                
-                const frameGeo = new THREE.BoxGeometry(1.0, 1.4, 0.03);
-                const frameMat = new THREE.MeshStandardMaterial({
-                    color: 0xd4af37,
-                    metalness: 0.6,
-                    roughness: 0.4
-                });
-                
-                const photoGeo = new THREE.PlaneGeometry(0.9, 1.3);
-                const photoMat = new THREE.MeshBasicMaterial({ map: texture });
-                
-                const frame = new THREE.Mesh(frameGeo, frameMat);
-                const photo = new THREE.Mesh(photoGeo, photoMat);
-                photo.position.z = 0.02;
-                
-                const photoGroup = new THREE.Group();
-                photoGroup.add(frame);
-                photoGroup.add(photo);
-                photoGroup.scale.setScalar(0.5);
-                
-                photoMeshGroup.add(photoGroup);
-                particleSystem.push(new Particle(photoGroup, 'PHOTO'));
-            });
-        }
-        
-        function updateSceneMode() {
-            // 更新UI指示器
-            const modeText = document.getElementById('mode-text');
-            const modeIcon = document.querySelector('.status-icon');
-            
-            if (modeText && modeIcon) {
-                switch (STATE.mode) {
-                    case 'TREE':
-                        modeText.textContent = '圣诞树形态';
-                        modeIcon.textContent = '🎄';
-                        break;
-                    case 'SCATTER':
-                        modeText.textContent = '散开形态';
-                        modeIcon.textContent = '✨';
-                        break;
-                    case 'FOCUS':
-                        modeText.textContent = '聚焦照片';
-                        modeIcon.textContent = '📸';
-                        break;
-                }
-            }
-        }
-        
+
         // ==================== 动画循环 ====================
         function animate() {
             requestAnimationFrame(animate);
-            const dt = Math.min(clock.getDelta(), 0.033);
+            const dt = clock.getDelta();
             
-            // 自动旋转
-            if (STATE.autoRotate && STATE.mode === 'TREE') {
-                mainGroup.rotation.y += 0.1 * dt;
+            // 根据模式旋转场景
+            if (STATE.mode === 'TREE') {
+                mainGroup.rotation.y += 0.2 * dt;
+            } else if (STATE.mode === 'SCATTER') {
+                mainGroup.rotation.x += 0.1 * dt;
+                mainGroup.rotation.y += 0.15 * dt;
             }
-            
-            // 更新粒子
-            particleSystem.forEach(particle => {
-                particle.update(dt);
-            });
             
             // 渲染场景
-            if (composer) {
-                composer.render();
-            } else {
-                renderer.render(scene, camera);
-            }
+            renderer.render(scene, camera);
         }
-        
+
         // ==================== 启动应用 ====================
         // 页面加载完成后初始化
         window.addEventListener('load', () => {
-            setTimeout(init, 100);
+            // 更新加载文本
+            const loaderText = document.getElementById('loader-text');
+            if (loaderText) {
+                const texts = [
+                    '初始化中...',
+                    '加载3D引擎...',
+                    '准备手势识别...',
+                    '即将完成...'
+                ];
+                let index = 0;
+                
+                setInterval(() => {
+                    loaderText.textContent = texts[index];
+                    index = (index + 1) % texts.length;
+                }, 1500);
+            }
+            
+            // 延迟初始化以避免阻塞
+            setTimeout(init, 500);
         });
         
         // 加载超时处理
         setTimeout(() => {
             const loader = document.getElementById('loader');
             if (loader && loader.style.display !== 'none') {
-                showStatusHint('加载时间较长，请耐心等待...', false);
+                showFixButton('加载时间过长，点击重试');
             }
-        }, 5000);
+        }, 15000);
     </script>
 </body>
 </html>
