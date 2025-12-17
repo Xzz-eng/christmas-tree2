@@ -3,27 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Grand Luxury Tree Final v2</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>圣诞星光</title>
+    
+    <!-- 引入Three.js和相关库 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/environments/RoomEnvironment.js"></script>
+
     <style>
-        /* 基础重置 - 移动端优化 */
+        /* iPhone 14 Pro 特定优化 */
+        :root {
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-inset-left: env(safe-area-inset-left, 0px);
+            --safe-area-inset-right: env(safe-area-inset-right, 0px);
+            --dynamic-island-height: 59px;
+            --iphone-14-pro-height: 852px;
+            --iphone-14-pro-width: 393px;
+        }
+        
         * {
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
             -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
             user-select: none;
+            box-sizing: border-box;
         }
         
         body { 
             margin: 0; 
             overflow: hidden; 
             background-color: #000000; 
-            font-family: 'Times New Roman', serif; 
-            position: fixed; /* 防止移动端滚动 */
-            width: 100%;
-            height: 100%;
-            touch-action: none; /* 禁用默认触摸行为 */
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            touch-action: none;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
         }
         
         #canvas-container { 
@@ -33,37 +57,23 @@
             top: 0; 
             left: 0; 
             z-index: 1; 
+            margin-top: calc(env(safe-area-inset-top) * -1);
+            margin-bottom: calc(env(safe-area-inset-bottom) * -1);
+            margin-left: calc(env(safe-area-inset-left) * -1);
+            margin-right: calc(env(safe-area-inset-right) * -1);
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
         }
         
-        /* UI Overlay - 移动端适配 */
-        #ui-layer {
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%;
-            z-index: 10; 
-            pointer-events: none;
-            display: flex; 
-            flex-direction: column; 
-            align-items: center;
-            padding-top: env(safe-area-inset-top, 20px);
-            padding-bottom: env(safe-area-inset-bottom, 20px);
-            box-sizing: border-box;
-        }
-        
-        .ui-hidden {
-            opacity: 0;
-            pointer-events: none !important;
-        }
-
-        /* Loading - 移动端优化 */
+        /* 加载界面 */
         #loader {
             position: absolute; 
             top: 0; 
             left: 0; 
-            width: 100%; 
-            height: 100%;
+            width: 100vw; 
+            height: 100vh;
             background: #000; 
             z-index: 100;
             display: flex; 
@@ -71,17 +81,21 @@
             align-items: center; 
             justify-content: center;
             transition: opacity 0.8s ease-out;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
+        
         .loader-text {
             color: #d4af37; 
             font-size: 14px; 
             letter-spacing: 2px; 
-            margin-top: 15px;
+            margin-top: 20px;
             text-transform: uppercase; 
-            font-weight: 100;
+            font-weight: 300;
             text-align: center;
             padding: 0 20px;
         }
+        
         .spinner {
             width: 30px; 
             height: 30px; 
@@ -90,244 +104,141 @@
             border-radius: 50%; 
             animation: spin 1s linear infinite;
         }
+        
         @keyframes spin { 
             0% { transform: rotate(0deg); } 
             100% { transform: rotate(360deg); } 
         }
-
-        /* Typography - 移动端适配 */
-        h1 { 
-            color: #fceea7; 
-            font-size: 36px; /* 减小字体大小 */
-            margin: 10px 0 5px; 
-            font-weight: 400; 
-            letter-spacing: 3px; 
-            text-shadow: 0 0 20px rgba(252, 238, 167, 0.6); 
-            background: linear-gradient(to bottom, #fff, #eebb66);
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent;
-            font-family: 'Cinzel', 'Times New Roman', serif;
-            opacity: 0.9;
-            text-align: center;
-            padding: 0 15px;
-            line-height: 1.2;
-        }
-
-        /* 移动端提示 */
-        .mobile-hint {
-            color: rgba(212, 175, 55, 0.6);
-            font-size: 10px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            text-align: center;
-            margin-top: 8px;
-            padding: 0 20px;
-        }
-
-        /* Upload Button - 移动端优化 */
-        .upload-wrapper {
-            margin-top: 15px;
-            pointer-events: auto;
-            text-align: center;
-            transition: opacity 0.5s ease;
-        }
-        .upload-btn {
-            background: rgba(20, 20, 20, 0.8); 
-            border: 1px solid rgba(212, 175, 55, 0.4); 
-            color: #d4af37; 
-            padding: 12px 20px; /* 增大触摸区域 */
-            cursor: pointer; 
-            text-transform: uppercase; 
-            letter-spacing: 2px; 
-            font-size: 11px;
-            transition: all 0.4s;
-            display: inline-block;
-            backdrop-filter: blur(5px);
-            border-radius: 4px;
-            min-height: 44px; /* 最小触摸尺寸 */
-            display: flex;
+        
+        /* 错误提示 */
+        .error-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            color: #ff6b6b;
+            display: none;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            touch-action: manipulation; /* 改善触摸响应 */
-        }
-        .upload-btn:active { 
-            background: #d4af37; 
-            color: #000; 
-            transform: scale(0.98);
-        }
-        @media (hover: hover) {
-            .upload-btn:hover { 
-                background: #d4af37; 
-                color: #000; 
-                box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
-            }
-        }
-        .hint-text {
-            color: rgba(212, 175, 55, 0.5);
-            font-size: 9px;
-            margin-top: 8px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
+            z-index: 200;
             text-align: center;
+            padding: 20px;
+            padding-top: calc(20px + env(safe-area-inset-top));
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
         }
-
-        #file-input { display: none; }
-
-        /* 手势控制指示器 */
-        #gesture-indicator {
+        
+        .error-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #d4af37;
+        }
+        
+        .error-detail {
+            font-size: 14px;
+            color: #aaa;
+            max-width: 300px;
+            margin: 10px 0;
+        }
+        
+        .retry-btn {
+            background: rgba(212, 175, 55, 0.2);
+            border: 1px solid #d4af37;
+            color: #d4af37;
+            padding: 12px 24px;
+            border-radius: 4px;
+            margin-top: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .retry-btn:active {
+            background: rgba(212, 175, 55, 0.4);
+        }
+        
+        /* 动态岛区域处理 */
+        .dynamic-island-area {
             position: absolute;
-            bottom: 80px;
+            top: 0;
             left: 50%;
             transform: translateX(-50%);
-            color: rgba(212, 175, 55, 0.7);
-            font-size: 10px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
+            width: 126px;
+            height: 37px;
+            background: transparent;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* 星光效果标题 */
+        .stars-title {
+            color: #64c8ff; 
+            font-size: 12px; 
+            letter-spacing: 1px; 
+            margin-top: 5px;
+            text-transform: uppercase; 
+            font-weight: 400;
             text-align: center;
-            opacity: 0;
-            transition: opacity 0.5s;
-            background: rgba(0,0,0,0.5);
-            padding: 5px 10px;
-            border-radius: 10px;
-        }
-
-        /* 性能警告 */
-        #performance-warning {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            color: #ffaa00;
-            font-size: 10px;
-            opacity: 0.6;
-            display: none;
-        }
-
-        /* 移动端控制面板 */
-        .mobile-controls {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            pointer-events: auto;
-            padding: 10px;
-            box-sizing: border-box;
-        }
-        
-        .control-btn {
-            background: rgba(20, 20, 20, 0.6);
-            border: 1px solid rgba(212, 175, 55, 0.4);
-            color: #d4af37;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            cursor: pointer;
-            touch-action: manipulation;
-            transition: all 0.3s;
-        }
-        
-        .control-btn:active {
-            background: #d4af37;
-            color: #000;
-            transform: scale(0.95);
+            padding: 0 15px;
+            opacity: 0.8;
         }
     </style>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
-        
-        /* 深色模式适配 */
-        @media (prefers-color-scheme: dark) {
-            body {
-                background-color: #000;
-            }
-        }
     </style>
-
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-                "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm"
-            }
-        }
-    </script>
 </head>
 <body>
-
     <div id="loader">
         <div class="spinner"></div>
-        <div class="loader-text">Loading Holiday Magic</div>
+        <div class="loader-text">加载节日魔法...</div>
     </div>
+    
+    <div class="error-message" id="error-message">
+        <div class="error-title">加载失败</div>
+        <div class="error-detail" id="error-detail">请检查网络连接后重试</div>
+        <button class="retry-btn" onclick="window.location.reload()">重新加载</button>
+    </div>
+
+    <!-- iPhone 14 Pro 动态岛区域（占位用） -->
+    <div class="dynamic-island-area"></div>
 
     <div id="canvas-container"></div>
 
-    <div id="ui-layer">
-        <h1>Merry Christmas</h1>
+    <script>
+        // iPhone 14 Pro 检测
+        const isIPhone14Pro = /iPhone 14 Pro/.test(navigator.userAgent) || 
+            (window.screen.width === 393 && window.screen.height === 852 && window.devicePixelRatio === 3);
         
-        <div class="mobile-hint">Touch & move to rotate the tree</div>
-        
-        <div class="upload-wrapper">
-            <label class="upload-btn">
-                Add Memories
-                <input type="file" id="file-input" multiple accept="image/*" capture="environment">
-            </label>
-            <div class="hint-text">Tap to hide controls</div>
-        </div>
-    </div>
-
-    <!-- 移动端控制按钮 -->
-    <div class="mobile-controls">
-        <button class="control-btn" id="mode-tree">Tree</button>
-        <button class="control-btn" id="mode-scatter">Scatter</button>
-        <button class="control-btn" id="mode-focus">Focus</button>
-    </div>
-
-    <div id="gesture-indicator">Gesture Mode Active</div>
-    <div id="performance-warning">High Performance Mode</div>
-
-    <script type="module">
-        import * as THREE from 'three';
-        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-        import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-
-        // --- 移动端配置优化 ---
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        
+        // 配置 - 针对iPhone 14 Pro优化
         const CONFIG = {
-            mobile: isMobile,
-            highPerformance: false, // 根据设备动态调整
-            
             colors: {
                 bg: 0x000000, 
                 champagneGold: 0xffd966, 
                 deepGreen: 0x03180a,     
                 accentRed: 0x990000,     
+                starBlue: 0x64c8ff,
+                starWhite: 0xffffff,
+                starYellow: 0xfff4b3,
+                starPink: 0xffb6c1,
+                starPurple: 0xbb86fc
             },
-            
-            // 移动端减少粒子数量
             particles: {
-                count: isMobile ? 400 : 1500,     
-                dustCount: isMobile ? 600 : 2500, 
-                treeHeight: isMobile ? 20 : 24,  
-                treeRadius: isMobile ? 6 : 8    
+                count: isIPhone14Pro ? 300 : (window.innerWidth < 768 ? 400 : 600),
+                dustCount: isIPhone14Pro ? 600 : (window.innerWidth < 768 ? 800 : 1200),
+                starCount: isIPhone14Pro ? 300 : (window.innerWidth < 768 ? 400 : 600),
+                treeHeight: 14,  
+                treeRadius: 3.5    
             },
-            
             camera: {
-                z: isMobile ? 40 : 50,
-                fov: isMobile ? 45 : 42 // 调整FOV适应移动端
+                z: isIPhone14Pro ? 22 : (window.innerWidth < 768 ? 25 : 35)
+            },
+            effects: {
+                bloomStrength: 1.2,
+                starDensity: 0.7,
+                twinkleSpeed: 1.3,
+                starSize: 0.08
             }
         };
 
@@ -335,11 +246,17 @@
             mode: 'TREE', 
             focusIndex: -1, 
             focusTarget: null,
-            isRotating: false,
+            touch: { 
+                isTouching: false,
+                lastX: 0,
+                lastY: 0,
+                pinchStart: 0,
+                isPinching: false
+            },
             rotation: { x: 0, y: 0 },
-            lastTouch: { x: 0, y: 0 },
-            useGyro: false,
-            gestureActive: false
+            autoRotate: true,
+            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+            isIPhone14Pro: isIPhone14Pro
         };
 
         let scene, camera, renderer, composer;
@@ -348,116 +265,98 @@
         let particleSystem = []; 
         let photoMeshGroup = new THREE.Group();
         let caneTexture;
-        let rafId;
-        let lastRenderTime = 0;
-        const targetFPS = 60;
-        const frameTime = 1000 / targetFPS;
+        let starParticles = [];
+        let starPoints;
+        let bloomPass;
 
-        // 节流函数
-        function throttle(func, limit) {
-            let inThrottle;
-            return function() {
-                const args = arguments;
-                const context = this;
-                if (!inThrottle) {
-                    func.apply(context, args);
-                    inThrottle = true;
-                    setTimeout(() => inThrottle = false, limit);
-                }
+        // 检查Three.js是否加载成功
+        function checkThreeLoaded() {
+            if (typeof THREE === 'undefined') {
+                showError('Three.js库加载失败，请刷新页面重试');
+                return false;
+            }
+            
+            return true;
+        }
+
+        function showError(message) {
+            const loader = document.getElementById('loader');
+            const errorDiv = document.getElementById('error-message');
+            const errorDetail = document.getElementById('error-detail');
+            
+            if (loader) loader.style.display = 'none';
+            if (errorDiv && errorDetail) {
+                errorDetail.textContent = message;
+                errorDiv.style.display = 'flex';
             }
         }
 
         async function init() {
-            // 检测性能
-            detectPerformance();
+            // 检查Three.js是否加载成功
+            if (!checkThreeLoaded()) {
+                return;
+            }
             
-            initThree();
-            setupEnvironment(); 
-            setupLights();
-            createTextures();
-            createParticles(); 
-            createDust();     
-            createDefaultPhotos();
-            
-            if (CONFIG.highPerformance) {
+            try {
+                initThree();
+                setupEnvironment(); 
+                setupLights();
+                createTextures();
+                createParticles(); 
+                createDust();     
+                createStarParticles(); // 默认创建星光
+                createDefaultPhotos();
                 setupPostProcessing();
-            }
-            
-            setupEvents();
-            
-            // 移动端延迟加载一些资源
-            if (!isMobile) {
-                // 桌面端可以加载更多效果
-            }
-            
-            const loader = document.getElementById('loader');
-            loader.style.opacity = 0;
-            setTimeout(() => {
-                loader.style.display = 'none';
-            }, 800);
+                setupMobileEvents();
+                
+                // 隐藏加载界面
+                const loader = document.getElementById('loader');
+                if (loader) {
+                    setTimeout(() => {
+                        loader.style.opacity = 0;
+                        setTimeout(() => {
+                            loader.style.display = 'none';
+                            // 确保UI元素可见
+                            updateUIPosition();
+                        }, 800);
+                    }, 1000);
+                }
 
-            animate();
-        }
-
-        function detectPerformance() {
-            const memory = navigator.deviceMemory;
-            const cores = navigator.hardwareConcurrency;
-            
-            // 根据设备能力调整设置
-            if (memory && memory >= 4 && cores >= 4) {
-                CONFIG.highPerformance = true;
-                CONFIG.particles.count = Math.min(CONFIG.particles.count * 1.5, 800);
-                document.getElementById('performance-warning').style.display = 'block';
-            }
-            
-            // iOS设备特殊优化
-            if (isIOS) {
-                // iOS通常有较好的GPU性能
-                CONFIG.highPerformance = true;
+                updateModeIndicator();
+                animate();
+            } catch (error) {
+                console.error('初始化错误:', error);
+                showError('初始化失败: ' + error.message);
             }
         }
 
         function initThree() {
             const container = document.getElementById('canvas-container');
-            
             scene = new THREE.Scene();
             scene.background = new THREE.Color(CONFIG.colors.bg);
-            
-            // 移动端减少雾效强度
-            scene.fog = new THREE.FogExp2(CONFIG.colors.bg, isMobile ? 0.005 : 0.01);
+            scene.fog = new THREE.FogExp2(CONFIG.colors.bg, 0.02); 
 
-            camera = new THREE.PerspectiveCamera(
-                CONFIG.camera.fov, 
-                window.innerWidth / window.innerHeight, 
-                0.1, 
-                1000
-            );
-            camera.position.set(0, 2, CONFIG.camera.z);
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 2, CONFIG.camera.z); 
 
-            // WebGL渲染器配置优化
-            const rendererConfig = {
-                antialias: !isMobile, // 移动端关闭抗锯齿提高性能
-                alpha: false,
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true, 
+                alpha: false, 
                 powerPreference: "high-performance",
-                precision: isMobile ? "mediump" : "highp" // 移动端使用中等精度
-            };
+                precision: 'mediump'
+            });
             
-            renderer = new THREE.WebGLRenderer(rendererConfig);
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            
-            // 根据设备调整像素比例
-            const pixelRatio = isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2);
-            renderer.setPixelRatio(pixelRatio);
-            
-            renderer.toneMapping = THREE.ReinhardToneMapping;
-            renderer.toneMappingExposure = isMobile ? 1.8 : 2.2;
-            
-            // 移动端优化设置
-            if (isMobile) {
-                renderer.shadowMap.enabled = false;
-                renderer.autoClear = true;
+            // iPhone 14 Pro 性能优化
+            if (STATE.isIPhone14Pro) {
+                renderer.setPixelRatio(2);
+            } else {
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
             }
             
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.toneMapping = THREE.ReinhardToneMapping; 
+            renderer.toneMappingExposure = 1.8; 
+            renderer.shadowMap.enabled = false;
             container.appendChild(renderer.domElement);
 
             mainGroup = new THREE.Group();
@@ -465,73 +364,108 @@
         }
 
         function setupEnvironment() {
-            if (CONFIG.highPerformance) {
-                const pmremGenerator = new THREE.PMREMGenerator(renderer);
-                scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+            try {
+                if (typeof THREE.RoomEnvironment !== 'undefined') {
+                    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+                    scene.environment = pmremGenerator.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+                } else {
+                    const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+                    scene.add(ambient);
+                }
+            } catch (error) {
+                console.warn('环境设置失败，使用简单环境光:', error);
+                const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+                scene.add(ambient);
             }
         }
 
         function setupLights() {
-            const ambient = new THREE.AmbientLight(0xffffff, isMobile ? 0.8 : 0.6);
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambient);
 
-            const innerLight = new THREE.PointLight(0xffaa00, 1.5, 20);
-            innerLight.position.set(0, 5, 0);
+            const innerLight = new THREE.PointLight(0xffaa00, 1.0, 10);
+            innerLight.position.set(0, 4, 0);
             mainGroup.add(innerLight);
 
-            // 移动端减少光源数量
-            if (!isMobile) {
-                const spotGold = new THREE.SpotLight(0xffcc66, 800);
-                spotGold.position.set(30, 40, 40);
-                spotGold.angle = 0.5;
-                spotGold.penumbra = 0.5;
-                scene.add(spotGold);
-            }
+            const spotGold = new THREE.SpotLight(0xffcc66, 400);
+            spotGold.position.set(10, 20, 20);
+            spotGold.angle = 0.3;
+            spotGold.penumbra = 0.5;
+            scene.add(spotGold);
 
-            const fill = new THREE.DirectionalLight(0xffeebb, 0.6);
-            fill.position.set(0, 0, 30);
-            scene.add(fill);
+            // 添加星光环境光
+            const starAmbient = new THREE.AmbientLight(CONFIG.colors.starBlue, 0.1);
+            scene.add(starAmbient);
+
+            // 添加装饰性点光源
+            const decorativeLights = [
+                { color: 0xff0000, position: [-3, 1, -2] },
+                { color: 0x00ff00, position: [3, 2, -1] },
+                { color: 0x0000ff, position: [-2, 3, 1] },
+                { color: 0xffff00, position: [2, 1, 2] },
+                { color: 0xff00ff, position: [0, 4, -3] }
+            ];
+
+            decorativeLights.forEach(light => {
+                const pointLight = new THREE.PointLight(light.color, 0.5, 8);
+                pointLight.position.set(light.position[0], light.position[1], light.position[2]);
+                scene.add(pointLight);
+            });
         }
 
         function setupPostProcessing() {
-            if (!CONFIG.highPerformance) return;
+            // iPhone 14 Pro 降低后期处理效果
+            if (STATE.isIPhone14Pro) {
+                setupSimplePostProcessing();
+                return;
+            }
             
-            const renderScene = new RenderPass(scene, camera);
-            const bloomPass = new UnrealBloomPass(
-                new THREE.Vector2(window.innerWidth, window.innerHeight), 
-                1.2, // 降低强度
-                0.3, 
-                0.8
-            );
-            bloomPass.threshold = 0.7;
-            bloomPass.strength = 0.3; // 降低强度
-            bloomPass.radius = 0.3;
+            try {
+                const renderScene = new THREE.RenderPass(scene, camera);
+                
+                // 辉光效果
+                bloomPass = new THREE.UnrealBloomPass(
+                    new THREE.Vector2(window.innerWidth, window.innerHeight), 
+                    CONFIG.effects.bloomStrength, 
+                    0.4, 
+                    0.8
+                );
+                
+                composer = new THREE.EffectComposer(renderer);
+                composer.addPass(renderScene);
+                composer.addPass(bloomPass);
+            } catch (error) {
+                console.warn('后期处理设置失败，使用简单渲染:', error);
+                setupSimplePostProcessing();
+            }
+        }
 
-            composer = new EffectComposer(renderer);
-            composer.addPass(renderScene);
-            composer.addPass(bloomPass);
+        function setupSimplePostProcessing() {
+            // 简单渲染，无后期处理
+            composer = null;
         }
 
         function createTextures() {
+            // 创建拐杖糖纹理
             const canvas = document.createElement('canvas');
-            canvas.width = 64; // 减小纹理尺寸
-            canvas.height = 64;
+            canvas.width = 32;
+            canvas.height = 32;
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0,0,64,64);
+            ctx.fillRect(0,0,32,32);
             ctx.fillStyle = '#880000'; 
             ctx.beginPath();
-            for(let i=-64; i<128; i+=16) {
+            for(let i=-32; i<64; i+=8) {
                 ctx.moveTo(i, 0); 
-                ctx.lineTo(i+16, 64); 
-                ctx.lineTo(i+8, 64); 
-                ctx.lineTo(i-8, 0);
+                ctx.lineTo(i+8, 32); 
+                ctx.lineTo(i+4, 32); 
+                ctx.lineTo(i-4, 0);
             }
             ctx.fill();
             caneTexture = new THREE.CanvasTexture(canvas);
             caneTexture.wrapS = THREE.RepeatWrapping;
             caneTexture.wrapT = THREE.RepeatWrapping;
-            caneTexture.repeat.set(2, 2); // 减少重复
+            caneTexture.repeat.set(1, 1);
         }
 
         class Particle {
@@ -544,9 +478,7 @@
                 this.posScatter = new THREE.Vector3();
                 this.baseScale = mesh.scale.x; 
 
-                // 移动端降低旋转速度
-                const speedMult = isMobile ? 1.0 : 2.0;
-                if (type === 'PHOTO') speedMult *= 0.3;
+                const speedMult = (type === 'PHOTO') ? 0.08 : 0.8;
 
                 this.spinSpeed = new THREE.Vector3(
                     (Math.random() - 0.5) * speedMult,
@@ -564,13 +496,12 @@
                 t = Math.pow(t, 0.8); 
                 const y = (t * h) - halfH;
                 let rMax = CONFIG.particles.treeRadius * (1.0 - t); 
-                if (rMax < 0.5) rMax = 0.5;
-                const angle = t * 50 * Math.PI + Math.random() * Math.PI; 
+                if (rMax < 0.2) rMax = 0.2;
+                const angle = t * 25 * Math.PI + Math.random() * Math.PI; 
                 const r = rMax * (0.8 + Math.random() * 0.4); 
                 this.posTree.set(Math.cos(angle) * r, y, Math.sin(angle) * r);
 
-                // 移动端减少散射范围
-                let rScatter = this.isDust ? (8 + Math.random()*15) : (6 + Math.random()*10);
+                let rScatter = this.isDust ? (3 + Math.random()*6) : (2 + Math.random()*4);
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
                 this.posScatter.set(
@@ -586,7 +517,7 @@
                 if (mode === 'SCATTER') target = this.posScatter;
                 else if (mode === 'FOCUS') {
                     if (this.mesh === focusTargetMesh) {
-                        const desiredWorldPos = new THREE.Vector3(0, 2, 30); // 移动端靠近相机
+                        const desiredWorldPos = new THREE.Vector3(0, 1.5, 12);
                         const invMatrix = new THREE.Matrix4().copy(mainGroup.matrixWorld).invert();
                         target = desiredWorldPos.applyMatrix4(invMatrix);
                     } else {
@@ -594,7 +525,7 @@
                     }
                 }
 
-                const lerpSpeed = (mode === 'FOCUS' && this.mesh === focusTargetMesh) ? 4.0 : 1.5; 
+                const lerpSpeed = (mode === 'FOCUS' && this.mesh === focusTargetMesh) ? 2.5 : 1.0; 
                 this.mesh.position.lerp(target, lerpSpeed * dt);
 
                 if (mode === 'SCATTER') {
@@ -604,7 +535,7 @@
                 } else if (mode === 'TREE') {
                     this.mesh.rotation.x = THREE.MathUtils.lerp(this.mesh.rotation.x, 0, dt);
                     this.mesh.rotation.z = THREE.MathUtils.lerp(this.mesh.rotation.z, 0, dt);
-                    this.mesh.rotation.y += 0.3 * dt; 
+                    this.mesh.rotation.y += 0.15 * dt; 
                 }
                 
                 if (mode === 'FOCUS' && this.mesh === focusTargetMesh) {
@@ -613,87 +544,71 @@
 
                 let s = this.baseScale;
                 if (this.isDust) {
-                    s = this.baseScale * (0.8 + 0.4 * Math.sin(clock.elapsedTime * 3 + this.mesh.id));
+                    s = this.baseScale * (0.8 + 0.4 * Math.sin(clock.elapsedTime * 1.5 + this.mesh.id));
                     if (mode === 'TREE') s = 0; 
                 } else if (mode === 'SCATTER' && this.type === 'PHOTO') {
-                    s = this.baseScale * (isMobile ? 2.0 : 2.5);
+                    s = this.baseScale * 1.3; 
                 } else if (mode === 'FOCUS') {
-                    if (this.mesh === focusTargetMesh) s = isMobile ? 3.5 : 4.5; 
-                    else s = this.baseScale * 0.8; 
+                    if (this.mesh === focusTargetMesh) s = 2.0; 
+                    else s = this.baseScale * 0.4; 
                 }
                 
-                this.mesh.scale.lerp(new THREE.Vector3(s,s,s), 3*dt);
+                this.mesh.scale.lerp(new THREE.Vector3(s,s,s), 1.5*dt);
             }
         }
 
         function createParticles() {
-            // 简化几何体以节省性能
-            const sphereGeo = new THREE.SphereGeometry(0.5, isMobile ? 8 : 16, isMobile ? 6 : 8);
-            const boxGeo = new THREE.BoxGeometry(0.55, 0.55, 0.55);
+            const sphereGeo = new THREE.SphereGeometry(0.25, 6, 6);
+            const boxGeo = new THREE.BoxGeometry(0.3, 0.3, 0.3); 
             
-            // 移动端简化糖果拐杖几何体
-            let candyGeo;
-            if (!isMobile) {
-                const curve = new THREE.CatmullRomCurve3([
-                    new THREE.Vector3(0, -0.5, 0), 
-                    new THREE.Vector3(0, 0.3, 0),
-                    new THREE.Vector3(0.1, 0.5, 0), 
-                    new THREE.Vector3(0.3, 0.4, 0)
-                ]);
-                candyGeo = new THREE.TubeGeometry(curve, 8, 0.08, 4, false);
-            } else {
-                candyGeo = new THREE.BoxGeometry(0.3, 0.8, 0.1);
-            }
-
             const goldMat = new THREE.MeshStandardMaterial({
                 color: CONFIG.colors.champagneGold,
-                metalness: isMobile ? 0.8 : 1.0, 
-                roughness: 0.2,
-                envMapIntensity: 1.5
+                metalness: 0.6, 
+                roughness: 0.5,
+                emissive: CONFIG.colors.champagneGold,
+                emissiveIntensity: 0.3
             });
 
             const greenMat = new THREE.MeshStandardMaterial({
                 color: CONFIG.colors.deepGreen,
-                metalness: 0.2, 
-                roughness: 0.8,
-                emissive: 0x002200,
+                roughness: 0.9,
+                emissive: 0x00ff00,
                 emissiveIntensity: 0.1
             });
 
             const redMat = new THREE.MeshStandardMaterial({
                 color: CONFIG.colors.accentRed,
-                metalness: 0.2, 
-                roughness: 0.3,
-                emissive: 0x220000
+                roughness: 0.6,
+                emissive: 0xff0000,
+                emissiveIntensity: 0.2
             });
             
             const candyMat = new THREE.MeshStandardMaterial({ 
                 map: caneTexture, 
-                roughness: 0.5 
+                roughness: 0.8,
+                emissive: 0xff6666,
+                emissiveIntensity: 0.2
             });
 
             for (let i = 0; i < CONFIG.particles.count; i++) {
                 const rand = Math.random();
                 let mesh, type;
                 
-                if (rand < 0.40) {
+                if (rand < 0.50) {
                     mesh = new THREE.Mesh(boxGeo, greenMat);
                     type = 'BOX';
-                } else if (rand < 0.70) {
+                } else if (rand < 0.80) {
                     mesh = new THREE.Mesh(boxGeo, goldMat);
                     type = 'GOLD_BOX';
-                } else if (rand < 0.92) {
+                } else if (rand < 0.95) {
                     mesh = new THREE.Mesh(sphereGeo, goldMat);
                     type = 'GOLD_SPHERE';
-                } else if (rand < 0.97) {
+                } else {
                     mesh = new THREE.Mesh(sphereGeo, redMat);
                     type = 'RED';
-                } else {
-                    mesh = new THREE.Mesh(candyGeo, candyMat);
-                    type = 'CANE';
                 }
 
-                const s = 0.3 + Math.random() * 0.4; // 减小尺寸
+                const s = 0.15 + Math.random() * 0.25;
                 mesh.scale.set(s,s,s);
                 mesh.rotation.set(Math.random()*6, Math.random()*6, Math.random()*6);
                 
@@ -701,57 +616,165 @@
                 particleSystem.push(new Particle(mesh, type, false));
             }
 
-            // 简化星星几何体
-            const starGeo = new THREE.OctahedronGeometry(1.0, 0);
+            // 创建发光星星
+            const starGeo = new THREE.OctahedronGeometry(0.6, 0);
             const starMat = new THREE.MeshStandardMaterial({
                 color: 0xffdd88, 
                 emissive: 0xffaa00, 
-                emissiveIntensity: 0.8,
-                metalness: 0.8, 
-                roughness: 0.1
+                emissiveIntensity: 1.5,
+                metalness: 0.5,
+                roughness: 0.2
             });
             const star = new THREE.Mesh(starGeo, starMat);
-            star.position.set(0, CONFIG.particles.treeHeight/2 + 0.8, 0);
+            star.position.set(0, CONFIG.particles.treeHeight/2 + 0.5, 0);
             mainGroup.add(star);
             
             mainGroup.add(photoMeshGroup);
         }
 
         function createDust() {
-            // 移动端使用更简单的几何体
-            const geo = isMobile ? 
-                new THREE.SphereGeometry(0.05, 3, 2) : 
-                new THREE.TetrahedronGeometry(0.08, 0);
-                
+            const geo = new THREE.TetrahedronGeometry(0.03, 0);
             const mat = new THREE.MeshBasicMaterial({ 
                 color: 0xffeebb, 
                 transparent: true, 
-                opacity: 0.6 
+                opacity: 0.4 
             });
             
-            for(let i = 0; i < CONFIG.particles.dustCount; i++) {
+            for(let i=0; i<CONFIG.particles.dustCount; i++) {
                  const mesh = new THREE.Mesh(geo, mat);
-                 mesh.scale.setScalar(0.3 + Math.random() * 0.5);
+                 mesh.scale.setScalar(0.15 + Math.random());
                  mainGroup.add(mesh);
                  particleSystem.push(new Particle(mesh, 'DUST', true));
             }
         }
 
+        function createStarParticles() {
+            const starCount = Math.floor(CONFIG.particles.starCount * CONFIG.effects.starDensity);
+            const positions = new Float32Array(starCount * 3);
+            const colors = new Float32Array(starCount * 3);
+            const sizes = new Float32Array(starCount);
+            const twinkleSpeeds = new Float32Array(starCount);
+            const originalY = new Float32Array(starCount);
+            const rotationSpeeds = new Float32Array(starCount);
+
+            for (let i = 0; i < starCount; i++) {
+                // 随机位置（球状分布，但主要集中在远处作为背景）
+                const radius = 15 + Math.random() * 25;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                
+                positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+                positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+                positions[i * 3 + 2] = radius * Math.cos(phi);
+                
+                originalY[i] = positions[i * 3 + 1];
+                
+                // 随机颜色（多种星光颜色）
+                const colorRand = Math.random();
+                let color;
+                if (colorRand < 0.4) {
+                    color = new THREE.Color(CONFIG.colors.starBlue);
+                } else if (colorRand < 0.6) {
+                    color = new THREE.Color(CONFIG.colors.starWhite);
+                } else if (colorRand < 0.8) {
+                    color = new THREE.Color(CONFIG.colors.starYellow);
+                } else if (colorRand < 0.9) {
+                    color = new THREE.Color(CONFIG.colors.starPink);
+                } else {
+                    color = new THREE.Color(CONFIG.colors.starPurple);
+                }
+                
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
+                
+                // 随机大小
+                sizes[i] = CONFIG.effects.starSize * (0.5 + Math.random());
+                
+                // 随机闪烁速度
+                twinkleSpeeds[i] = 0.5 + Math.random() * 2;
+                
+                // 随机旋转速度
+                rotationSpeeds[i] = (Math.random() - 0.5) * 0.5;
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+            
+            // 存储额外属性
+            geometry.userData = { twinkleSpeeds, originalY, rotationSpeeds };
+
+            const material = new THREE.PointsMaterial({
+                size: 0.1,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending,
+                sizeAttenuation: true
+            });
+
+            starPoints = new THREE.Points(geometry, material);
+            scene.add(starPoints);
+        }
+
+        function updateStarParticles(dt) {
+            if (!starPoints) return;
+            
+            const positions = starPoints.geometry.attributes.position.array;
+            const colors = starPoints.geometry.attributes.color.array;
+            const sizes = starPoints.geometry.attributes.size.array;
+            const { twinkleSpeeds, originalY, rotationSpeeds } = starPoints.geometry.userData;
+            
+            const time = clock.elapsedTime;
+            
+            for (let i = 0; i < positions.length / 3; i++) {
+                // 上下浮动
+                const floatOffset = Math.sin(time * 0.3 + i * 0.1) * 0.5;
+                positions[i * 3 + 1] = originalY[i] + floatOffset;
+                
+                // 轻微旋转运动
+                const angle = time * rotationSpeeds[i];
+                const x = positions[i * 3];
+                const z = positions[i * 3 + 2];
+                positions[i * 3] = x * Math.cos(angle) - z * Math.sin(angle);
+                positions[i * 3 + 2] = x * Math.sin(angle) + z * Math.cos(angle);
+                
+                // 闪烁效果
+                const twinkle = Math.sin(time * twinkleSpeeds[i] * CONFIG.effects.twinkleSpeed) * 0.5 + 0.5;
+                
+                // 更新颜色亮度
+                const brightness = 0.5 + twinkle * 0.5;
+                colors[i * 3] *= brightness;
+                colors[i * 3 + 1] *= brightness;
+                colors[i * 3 + 2] *= brightness;
+                
+                // 更新大小
+                const sizeMultiplier = 0.6 + twinkle * 0.8;
+                sizes[i] = CONFIG.effects.starSize * sizeMultiplier;
+            }
+            
+            starPoints.geometry.attributes.position.needsUpdate = true;
+            starPoints.geometry.attributes.color.needsUpdate = true;
+            starPoints.geometry.attributes.size.needsUpdate = true;
+        }
+
         function createDefaultPhotos() {
             const canvas = document.createElement('canvas');
-            canvas.width = 256; // 减小尺寸
-            canvas.height = 256;
+            canvas.width = 128;
+            canvas.height = 128;
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#050505'; 
-            ctx.fillRect(0,0,256,256);
+            ctx.fillRect(0,0,128,128);
             ctx.strokeStyle = '#eebb66'; 
-            ctx.lineWidth = 8; 
-            ctx.strokeRect(10,10,236,236);
-            ctx.font = '500 30px Times New Roman'; 
+            ctx.lineWidth = 3; 
+            ctx.strokeRect(4,4,120,120);
+            ctx.font = '300 16px "Times New Roman"'; 
             ctx.fillStyle = '#eebb66';
             ctx.textAlign = 'center'; 
-            ctx.fillText("JOYEUX", 128, 110);
-            ctx.fillText("NOËL", 128, 150);
+            ctx.fillText("圣诞", 64, 55);
+            ctx.fillText("快乐", 64, 75);
             
             const tex = new THREE.CanvasTexture(canvas);
             tex.colorSpace = THREE.SRGBColorSpace;
@@ -759,24 +782,30 @@
         }
 
         function addPhotoToScene(texture) {
-            const frameGeo = new THREE.BoxGeometry(1.2, 1.2, 0.05); // 减小尺寸
+            const frameGeo = new THREE.BoxGeometry(0.9, 0.9, 0.02);
             const frameMat = new THREE.MeshStandardMaterial({ 
                 color: CONFIG.colors.champagneGold, 
-                metalness: 0.8, 
-                roughness: 0.2 
+                metalness: 0.6, 
+                roughness: 0.5,
+                emissive: CONFIG.colors.champagneGold,
+                emissiveIntensity: 0.3
             });
             const frame = new THREE.Mesh(frameGeo, frameMat);
 
-            const photoGeo = new THREE.PlaneGeometry(1.0, 1.0);
-            const photoMat = new THREE.MeshBasicMaterial({ map: texture });
+            const photoGeo = new THREE.PlaneGeometry(0.75, 0.75);
+            const photoMat = new THREE.MeshBasicMaterial({ 
+                map: texture,
+                emissive: 0xffffff,
+                emissiveIntensity: 0.2
+            });
             const photo = new THREE.Mesh(photoGeo, photoMat);
-            photo.position.z = 0.04;
+            photo.position.z = 0.015;
 
             const group = new THREE.Group();
             group.add(frame);
             group.add(photo);
             
-            const s = 0.6; // 减小缩放
+            const s = 0.4;
             group.scale.set(s,s,s);
             
             photoMeshGroup.add(group);
@@ -787,298 +816,502 @@
             const files = e.target.files;
             if(!files.length) return;
             
-            // 限制上传数量
-            const maxFiles = Math.min(files.length, 5);
+            const maxPhotos = STATE.isIPhone14Pro ? 4 : 6;
+            if (photoMeshGroup.children.length + files.length > maxPhotos) {
+                alert(`最多可以添加 ${maxPhotos} 张照片\n当前已有 ${photoMeshGroup.children.length} 张`);
+                return;
+            }
             
-            for(let i = 0; i < maxFiles; i++) {
-                const file = files[i];
+            let loadedCount = 0;
+            Array.from(files).forEach(f => {
+                if (loadedCount >= 2) return;
+                
                 const reader = new FileReader();
                 reader.onload = (ev) => {
-                    new THREE.TextureLoader().load(ev.target.result, (t) => {
-                        t.colorSpace = THREE.SRGBColorSpace;
-                        addPhotoToScene(t);
-                    });
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const size = 128;
+                        canvas.width = size;
+                        canvas.height = size;
+                        const ctx = canvas.getContext('2d');
+                        
+                        const scale = Math.max(size/img.width, size/img.height);
+                        const x = (size - img.width * scale) / 2;
+                        const y = (size - img.height * scale) / 2;
+                        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                        
+                        const tex = new THREE.CanvasTexture(canvas);
+                        tex.colorSpace = THREE.SRGBColorSpace;
+                        addPhotoToScene(tex);
+                        loadedCount++;
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(f);
+            });
+        }
+
+        function updateUIPosition() {
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
+            
+            const safeAreaTop = window.safeAreaInsets ? window.safeAreaInsets.top : 0;
+            const safeAreaBottom = window.safeAreaInsets ? window.safeAreaInsets.bottom : 0;
+            
+            const title = document.querySelector('h1');
+            const controls = document.querySelector('.mobile-controls');
+            const uploadWrapper = document.querySelector('.upload-wrapper');
+            
+            if (title) {
+                if (viewportHeight < 700) {
+                    title.style.marginTop = '3vh';
+                    title.style.fontSize = '28px';
+                } else if (STATE.isIPhone14Pro) {
+                    title.style.marginTop = 'calc(4vh + env(safe-area-inset-top))';
                 }
-                reader.readAsDataURL(file);
+            }
+            
+            if (controls) {
+                if (STATE.isIPhone14Pro) {
+                    controls.style.bottom = 'calc(15px + env(safe-area-inset-bottom))';
+                } else if (viewportHeight < 700) {
+                    controls.style.bottom = '10px';
+                } else {
+                    controls.style.bottom = 'calc(20px + env(safe-area-inset-bottom))';
+                }
+                
+                controls.style.display = 'flex';
+                controls.style.opacity = '1';
+                controls.style.zIndex = '20';
+            }
+            
+            if (uploadWrapper && viewportHeight < 700) {
+                uploadWrapper.style.marginTop = '2vh';
             }
         }
 
-        // --- 移动端触摸控制 ---
-        function handleTouchStart(e) {
-            e.preventDefault();
-            const touch = e.touches[0];
-            STATE.isRotating = true;
-            STATE.lastTouch.x = touch.clientX;
-            STATE.lastTouch.y = touch.clientY;
+        function setupMobileEvents() {
+            const uiHTML = `
+                <div id="ui-layer" style="
+                    position: fixed; 
+                    top: 0; 
+                    left: 0; 
+                    width: 100vw; 
+                    height: 100vh;
+                    z-index: 10; 
+                    pointer-events: none;
+                    display: flex; 
+                    flex-direction: column; 
+                    align-items: center;
+                    padding-top: calc(6vh + env(safe-area-inset-top));
+                    box-sizing: border-box;
+                ">
+                    <h1 style="
+                        color: #fceea7; 
+                        font-size: ${STATE.isIPhone14Pro ? '36px' : 'clamp(32px, 8vw, 42px)'}; 
+                        margin: 0 0 2vh 0; 
+                        font-weight: 400; 
+                        letter-spacing: 2px; 
+                        text-shadow: 0 0 20px rgba(252, 238, 167, 0.6); 
+                        background: linear-gradient(to bottom, #fff, #eebb66);
+                        -webkit-background-clip: text; 
+                        -webkit-text-fill-color: transparent;
+                        background-clip: text;
+                        font-family: 'Cinzel', 'Times New Roman', serif;
+                        opacity: 0.9;
+                        text-align: center;
+                        padding: 0 15px;
+                        pointer-events: none;
+                    ">圣诞星光</h1>
+                    
+                    <div class="stars-title">✨ 闪烁的星光背景 ✨</div>
+                    
+                    <div class="upload-wrapper" style="
+                        margin-top: ${STATE.isIPhone14Pro ? '4vh' : '5vh'};
+                        pointer-events: auto;
+                        text-align: center;
+                        width: 90%;
+                        max-width: 250px;
+                    ">
+                        <label class="upload-btn" style="
+                            background: rgba(20, 20, 20, 0.7); 
+                            border: 1px solid rgba(212, 175, 55, 0.5); 
+                            color: #d4af37; 
+                            padding: 12px 20px; 
+                            cursor: pointer; 
+                            text-transform: uppercase; 
+                            letter-spacing: 1px; 
+                            font-size: 12px;
+                            display: block;
+                            backdrop-filter: blur(10px);
+                            border-radius: 4px;
+                            touch-action: manipulation;
+                            min-height: 44px;
+                            font-weight: 500;
+                            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.3);
+                            transition: all 0.3s;
+                        " onmouseover="this.style.background='rgba(30, 30, 30, 0.8)'" onmouseout="this.style.background='rgba(20, 20, 20, 0.7)'">
+                            添加照片
+                            <input type="file" id="file-input" multiple accept="image/*" style="display: none;">
+                        </label>
+                        <div class="hint-text" style="
+                            color: rgba(100, 200, 255, 0.6);
+                            font-size: 10px;
+                            margin-top: 8px;
+                            letter-spacing: 0.5px;
+                            text-transform: uppercase;
+                            text-align: center;
+                            padding: 0 10px;
+                            pointer-events: none;
+                        ">单指旋转 · 双指缩放</div>
+                    </div>
+                    
+                    <div id="mode-indicator" style="
+                        position: absolute;
+                        top: calc(15px + env(safe-area-inset-top));
+                        right: 15px;
+                        background: rgba(0, 0, 0, 0.5);
+                        color: #d4af37;
+                        padding: 6px 12px;
+                        border-radius: 15px;
+                        font-size: 11px;
+                        letter-spacing: 0.5px;
+                        text-transform: uppercase;
+                        pointer-events: none;
+                        backdrop-filter: blur(10px);
+                        border: 1px solid rgba(212, 175, 55, 0.3);
+                        font-weight: 500;
+                        z-index: 15;
+                    ">🎄 圣诞树模式</div>
+                    
+                    <!-- 触摸区域 -->
+                    <div id="touch-area" style="
+                        position: absolute;
+                        top: calc(120px + env(safe-area-inset-top));
+                        left: 0;
+                        width: 100vw;
+                        height: 60vh;
+                        z-index: 5;
+                        pointer-events: auto;
+                        background: transparent;
+                    "></div>
+                    
+                    <!-- 移动端控制按钮 -->
+                    <div class="mobile-controls" style="
+                        position: fixed;
+                        bottom: calc(20px + env(safe-area-inset-bottom));
+                        left: 0;
+                        width: 100vw;
+                        display: flex;
+                        justify-content: space-around;
+                        align-items: center;
+                        pointer-events: auto;
+                        padding: 0 15px;
+                        box-sizing: border-box;
+                        z-index: 20;
+                    ">
+                        <div class="control-btn" id="btn-tree" title="圣诞树模式" style="
+                            background: rgba(30, 30, 30, 0.7);
+                            border: 1px solid rgba(212, 175, 55, 0.4);
+                            color: #d4af37;
+                            width: 50px;
+                            height: 50px;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 20px;
+                            cursor: pointer;
+                            touch-action: manipulation;
+                            transition: all 0.3s;
+                            backdrop-filter: blur(10px);
+                            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.3);
+                        " onmouseover="this.style.transform='scale(1.1)'; this.style.background='rgba(40, 40, 40, 0.8)'" onmouseout="this.style.transform='scale(1)'; this.style.background='rgba(30, 30, 30, 0.7)'">🎄</div>
+                        <div class="control-btn" id="btn-scatter" title="星空模式" style="
+                            background: rgba(30, 30, 30, 0.7);
+                            border: 1px solid rgba(212, 175, 55, 0.4);
+                            color: #d4af37;
+                            width: 50px;
+                            height: 50px;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 20px;
+                            cursor: pointer;
+                            touch-action: manipulation;
+                            transition: all 0.3s;
+                            backdrop-filter: blur(10px);
+                            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.3);
+                        " onmouseover="this.style.transform='scale(1.1)'; this.style.background='rgba(40, 40, 40, 0.8)'" onmouseout="this.style.transform='scale(1)'; this.style.background='rgba(30, 30, 30, 0.7)'">✨</div>
+                        <div class="control-btn" id="btn-focus" title="随机聚焦" style="
+                            background: rgba(30, 30, 30, 0.7);
+                            border: 1px solid rgba(212, 175, 55, 0.4);
+                            color: #d4af37;
+                            width: 50px;
+                            height: 50px;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 20px;
+                            cursor: pointer;
+                            touch-action: manipulation;
+                            transition: all 0.3s;
+                            backdrop-filter: blur(10px);
+                            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.3);
+                        " onmouseover="this.style.transform='scale(1.1)'; this.style.background='rgba(40, 40, 40, 0.8)'" onmouseout="this.style.transform='scale(1)'; this.style.background='rgba(30, 30, 30, 0.7)'">📸</div>
+                    </div>
+                    
+                    <!-- 隐藏/显示UI按钮 -->
+                    <div class="control-btn" id="btn-toggle-ui" title="显示/隐藏控制" style="
+                        position: fixed;
+                        bottom: calc(85px + env(safe-area-inset-bottom));
+                        right: 20px;
+                        background: rgba(30, 30, 30, 0.7);
+                        border: 1px solid rgba(212, 175, 55, 0.4);
+                        color: #d4af37;
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 18px;
+                        cursor: pointer;
+                        touch-action: manipulation;
+                        transition: all 0.3s;
+                        backdrop-filter: blur(10px);
+                        z-index: 20;
+                        pointer-events: auto;
+                        -webkit-tap-highlight-color: rgba(212, 175, 55, 0.3);
+                    " onmouseover="this.style.transform='scale(1.1)'; this.style.background='rgba(40, 40, 40, 0.8)'" onmouseout="this.style.transform='scale(1)'; this.style.background='rgba(30, 30, 30, 0.7)'">👁️</div>
+                </div>
+            `;
             
-            // 显示手势指示器
-            document.getElementById('gesture-indicator').style.opacity = '1';
-        }
-
-        function handleTouchMove(e) {
-            if (!STATE.isRotating) return;
-            e.preventDefault();
+            document.body.insertAdjacentHTML('beforeend', uiHTML);
             
-            const touch = e.touches[0];
-            const deltaX = touch.clientX - STATE.lastTouch.x;
-            const deltaY = touch.clientY - STATE.lastTouch.y;
-            
-            // 平滑旋转
-            STATE.rotation.y += deltaX * 0.01;
-            STATE.rotation.x += deltaY * 0.005;
-            
-            // 限制X轴旋转角度
-            STATE.rotation.x = Math.max(-Math.PI/4, Math.min(Math.PI/4, STATE.rotation.x));
-            
-            STATE.lastTouch.x = touch.clientX;
-            STATE.lastTouch.y = touch.clientY;
-            
-            STATE.gestureActive = true;
-        }
-
-        function handleTouchEnd(e) {
-            STATE.isRotating = false;
-            
-            // 隐藏手势指示器
-            setTimeout(() => {
-                if (!STATE.isRotating) {
-                    document.getElementById('gesture-indicator').style.opacity = '0';
-                    STATE.gestureActive = false;
-                }
-            }, 1000);
-        }
-
-        // --- 陀螺仪控制 (iOS) ---
-        function setupGyroControls() {
-            if (typeof DeviceOrientationEvent !== 'undefined' && 
-                typeof DeviceOrientationEvent.requestPermission === 'function') {
-                
-                // iOS需要请求权限
-                DeviceOrientationEvent.requestPermission()
-                    .then(permissionState => {
-                        if (permissionState === 'granted') {
-                            STATE.useGyro = true;
-                            window.addEventListener('deviceorientation', handleDeviceOrientation);
-                        }
-                    })
-                    .catch(console.error);
-            } else if ('DeviceOrientationEvent' in window) {
-                // 非iOS设备
-                STATE.useGyro = true;
-                window.addEventListener('deviceorientation', handleDeviceOrientation);
-            }
-        }
-
-        function handleDeviceOrientation(e) {
-            if (!STATE.useGyro || STATE.isRotating || STATE.gestureActive) return;
-            
-            // 使用陀螺仪数据
-            if (e.beta !== null && e.gamma !== null) {
-                const beta = e.beta; // -180 to 180
-                const gamma = e.gamma; // -90 to 90
-                
-                // 映射到旋转角度
-                STATE.rotation.x = THREE.MathUtils.degToRad(beta * 0.5);
-                STATE.rotation.y = THREE.MathUtils.degToRad(gamma * 0.5);
-            }
-        }
-
-        function setupEvents() {
-            // 窗口大小调整
-            const handleResize = throttle(() => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                
-                if (composer) {
-                    composer.setSize(window.innerWidth, window.innerHeight);
-                }
-            }, 100);
-            
-            window.addEventListener('resize', handleResize);
+            // 获取DOM元素
+            const touchArea = document.getElementById('touch-area');
+            const fileInput = document.getElementById('file-input');
+            const btnTree = document.getElementById('btn-tree');
+            const btnScatter = document.getElementById('btn-scatter');
+            const btnFocus = document.getElementById('btn-focus');
+            const btnToggleUI = document.getElementById('btn-toggle-ui');
+            const uploadWrapper = document.querySelector('.upload-wrapper');
+            const modeIndicator = document.getElementById('mode-indicator');
+            const mobileControls = document.querySelector('.mobile-controls');
             
             // 文件上传
-            document.getElementById('file-input').addEventListener('change', handleImageUpload);
+            if (fileInput) {
+                fileInput.addEventListener('change', handleImageUpload);
+            }
             
-            // 移动端触摸控制
-            if (isMobile) {
-                const canvas = renderer.domElement;
-                
-                canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-                canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-                canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-                
-                // 点击隐藏控制
-                canvas.addEventListener('touchstart', (e) => {
+            // 触摸事件
+            if (touchArea) {
+                touchArea.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
                     if (e.touches.length === 1) {
+                        STATE.touch.isTouching = true;
+                        STATE.touch.lastX = e.touches[0].clientX;
+                        STATE.touch.lastY = e.touches[0].clientY;
+                        STATE.autoRotate = false;
+                    } else if (e.touches.length === 2) {
+                        STATE.touch.isPinching = true;
+                        const dx = e.touches[0].clientX - e.touches[1].clientX;
+                        const dy = e.touches[0].clientY - e.touches[1].clientY;
+                        STATE.touch.pinchStart = Math.sqrt(dx * dx + dy * dy);
+                    }
+                });
+
+                touchArea.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    
+                    if (e.touches.length === 1 && STATE.touch.isTouching) {
+                        const deltaX = e.touches[0].clientX - STATE.touch.lastX;
+                        const deltaY = e.touches[0].clientY - STATE.touch.lastY;
+                        
+                        STATE.rotation.y += deltaX * 0.005;
+                        STATE.rotation.x += deltaY * 0.0025;
+                        
+                        STATE.rotation.x = Math.max(-0.25, Math.min(0.25, STATE.rotation.x));
+                        
+                        STATE.touch.lastX = e.touches[0].clientX;
+                        STATE.touch.lastY = e.touches[0].clientY;
+                    }
+                    
+                    if (e.touches.length === 2 && STATE.touch.isPinching) {
+                        const dx = e.touches[0].clientX - e.touches[1].clientX;
+                        const dy = e.touches[0].clientY - e.touches[1].clientY;
+                        const pinchCurrent = Math.sqrt(dx * dx + dy * dy);
+                        const scale = pinchCurrent / STATE.touch.pinchStart;
+                        
+                        camera.position.z = THREE.MathUtils.clamp(
+                            camera.position.z / scale, 
+                            8, 
+                            30
+                        );
+                        
+                        STATE.touch.pinchStart = pinchCurrent;
+                    }
+                });
+
+                touchArea.addEventListener('touchend', (e) => {
+                    STATE.touch.isTouching = false;
+                    STATE.touch.isPinching = false;
+                    if (e.touches.length === 0 && STATE.mode === 'TREE') {
                         setTimeout(() => {
-                            const controls = document.querySelector('.upload-wrapper');
-                            if (controls) controls.classList.toggle('ui-hidden');
-                        }, 100);
-                    }
-                }, { passive: true });
-                
-                // 双击重置视角
-                let lastTap = 0;
-                canvas.addEventListener('touchend', (e) => {
-                    const currentTime = new Date().getTime();
-                    const tapLength = currentTime - lastTap;
-                    if (tapLength < 500 && tapLength > 0) {
-                        // 双击事件
-                        STATE.rotation.x = 0;
-                        STATE.rotation.y = 0;
-                        STATE.mode = 'TREE';
-                        updateModeButtons();
-                    }
-                    lastTap = currentTime;
-                }, { passive: true });
-                
-                // 设置陀螺仪控制
-                setupGyroControls();
-            } else {
-                // 桌面端键盘控制
-                window.addEventListener('keydown', (e) => {
-                    if (e.key.toLowerCase() === 'h') {
-                        const controls = document.querySelector('.upload-wrapper');
-                        if (controls) controls.classList.toggle('ui-hidden');
+                            STATE.autoRotate = true;
+                        }, 2000);
                     }
                 });
             }
             
-            // 模式按钮控制
-            document.getElementById('mode-tree').addEventListener('click', () => {
-                STATE.mode = 'TREE';
-                STATE.focusTarget = null;
-                updateModeButtons();
-            });
+            // 控制按钮事件
+            if (btnTree) {
+                btnTree.addEventListener('click', () => {
+                    STATE.mode = 'TREE';
+                    STATE.focusTarget = null;
+                    STATE.autoRotate = true;
+                    updateModeIndicator();
+                });
+            }
             
-            document.getElementById('mode-scatter').addEventListener('click', () => {
-                STATE.mode = 'SCATTER';
-                STATE.focusTarget = null;
-                updateModeButtons();
-            });
+            if (btnScatter) {
+                btnScatter.addEventListener('click', () => {
+                    STATE.mode = 'SCATTER';
+                    STATE.focusTarget = null;
+                    STATE.autoRotate = false;
+                    updateModeIndicator();
+                });
+            }
             
-            document.getElementById('mode-focus').addEventListener('click', () => {
-                STATE.mode = 'FOCUS';
-                const photos = particleSystem.filter(p => p.type === 'PHOTO');
-                if (photos.length) {
-                    STATE.focusTarget = photos[Math.floor(Math.random() * photos.length)].mesh;
-                }
-                updateModeButtons();
-            });
-        }
-
-        function updateModeButtons() {
-            const buttons = ['mode-tree', 'mode-scatter', 'mode-focus'];
-            buttons.forEach(id => {
-                const btn = document.getElementById(id);
-                if (btn) {
-                    const mode = id.replace('mode-', '').toUpperCase();
-                    if (mode === STATE.mode) {
-                        btn.style.background = '#d4af37';
-                        btn.style.color = '#000';
-                    } else {
-                        btn.style.background = 'rgba(20, 20, 20, 0.6)';
-                        btn.style.color = '#d4af37';
+            if (btnFocus) {
+                btnFocus.addEventListener('click', () => {
+                    const photos = particleSystem.filter(p => p.type === 'PHOTO');
+                    if (photos.length > 0) {
+                        STATE.mode = 'FOCUS';
+                        const randomIndex = Math.floor(Math.random() * photos.length);
+                        STATE.focusTarget = photos[randomIndex].mesh;
+                        STATE.autoRotate = false;
+                        updateModeIndicator();
                     }
-                }
+                });
+            }
+            
+            // 隐藏/显示UI按钮
+            if (btnToggleUI) {
+                let uiHidden = false;
+                btnToggleUI.addEventListener('click', () => {
+                    uiHidden = !uiHidden;
+                    if (uploadWrapper) {
+                        uploadWrapper.style.opacity = uiHidden ? '0' : '1';
+                        uploadWrapper.style.pointerEvents = uiHidden ? 'none' : 'auto';
+                    }
+                    if (modeIndicator) {
+                        modeIndicator.style.opacity = uiHidden ? '0' : '1';
+                    }
+                    if (mobileControls) {
+                        mobileControls.style.opacity = uiHidden ? '0' : '1';
+                        mobileControls.style.pointerEvents = uiHidden ? 'none' : 'auto';
+                    }
+                    if (btnToggleUI) {
+                        btnToggleUI.innerHTML = uiHidden ? '👁️‍🗨️' : '👁️';
+                    }
+                });
+            }
+            
+            // 窗口大小变化
+            window.addEventListener('resize', function() {
+                setTimeout(() => {
+                    onWindowResize();
+                    updateUIPosition();
+                }, 100);
+            });
+            
+            window.addEventListener('orientationchange', function() {
+                setTimeout(() => {
+                    onWindowResize();
+                    updateUIPosition();
+                }, 500);
             });
         }
 
-        function animate(currentTime = 0) {
-            rafId = requestAnimationFrame(animate);
+        function updateModeIndicator() {
+            const indicator = document.getElementById('mode-indicator');
+            if (!indicator) return;
             
-            // 帧率控制
-            const deltaTime = currentTime - lastRenderTime;
-            if (deltaTime < frameTime) return;
+            switch(STATE.mode) {
+                case 'TREE':
+                    indicator.textContent = '🎄 圣诞树模式';
+                    break;
+                case 'SCATTER':
+                    indicator.textContent = '✨ 星空模式';
+                    break;
+                case 'FOCUS':
+                    indicator.textContent = '📸 聚焦照片';
+                    break;
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
             
-            lastRenderTime = currentTime;
+            if (composer) {
+                composer.setSize(window.innerWidth, window.innerHeight);
+            }
             
-            const dt = clock.getDelta();
-            
-            // 限制dt防止卡顿
-            const clampedDt = Math.min(dt, 0.033); // 最大30FPS的dt
-            
-            // 应用旋转
-            mainGroup.rotation.y = STATE.rotation.y;
-            mainGroup.rotation.x = STATE.rotation.x;
-            
-            // 平滑减速（如果没有触摸）
-            if (!STATE.isRotating && !STATE.useGyro && !STATE.gestureActive) {
-                STATE.rotation.y *= 0.95;
-                STATE.rotation.x *= 0.95;
+            // 更新配置
+            CONFIG.particles.count = STATE.isIPhone14Pro ? 300 : (window.innerWidth < 768 ? 400 : 600);
+            CONFIG.particles.dustCount = STATE.isIPhone14Pro ? 600 : (window.innerWidth < 768 ? 800 : 1200);
+            CONFIG.particles.starCount = STATE.isIPhone14Pro ? 300 : (window.innerWidth < 768 ? 400 : 600);
+            CONFIG.camera.z = STATE.isIPhone14Pro ? 22 : (window.innerWidth < 768 ? 25 : 35);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = Math.min(clock.getDelta(), 0.033);
+
+            if (STATE.autoRotate && STATE.mode === 'TREE') {
+                STATE.rotation.y += 0.1 * dt;
             }
 
-            // 更新粒子
-            particleSystem.forEach(p => p.update(clampedDt, STATE.mode, STATE.focusTarget));
+            mainGroup.rotation.y = STATE.rotation.y;
+            mainGroup.rotation.x = STATE.rotation.x;
+
+            particleSystem.forEach(p => p.update(dt, STATE.mode, STATE.focusTarget));
             
-            // 渲染
-            if (CONFIG.highPerformance && composer) {
+            // 始终更新星光粒子
+            updateStarParticles(dt);
+            
+            if (composer && !STATE.isIPhone14Pro && window.innerWidth >= 768) {
                 composer.render();
             } else {
                 renderer.render(scene, camera);
             }
         }
 
-        // 清理函数
-        function cleanup() {
-            if (rafId) {
-                cancelAnimationFrame(rafId);
+        // 设置加载超时
+        setTimeout(() => {
+            const loader = document.getElementById('loader');
+            if (loader && loader.style.display !== 'none') {
+                showError('加载时间过长，请检查网络或刷新页面');
             }
-            
-            // 清理Three.js资源
-            scene.traverse(object => {
-                if (object.geometry) {
-                    object.geometry.dispose();
-                }
-                if (object.material) {
-                    if (Array.isArray(object.material)) {
-                        object.material.forEach(material => material.dispose());
-                    } else {
-                        object.material.dispose();
-                    }
-                }
-                if (object.texture) {
-                    object.texture.dispose();
-                }
-            });
-            
-            if (renderer) {
-                renderer.dispose();
-            }
-            
-            // 移除事件监听器
-            window.removeEventListener('resize', handleResize);
-            if (isMobile) {
-                const canvas = renderer.domElement;
-                canvas.removeEventListener('touchstart', handleTouchStart);
-                canvas.removeEventListener('touchmove', handleTouchMove);
-                canvas.removeEventListener('touchend', handleTouchEnd);
-            }
-        }
+        }, 15000);
 
-        // 页面卸载时清理
-        window.addEventListener('beforeunload', cleanup);
-        window.addEventListener('pagehide', cleanup);
-
-        // 处理页面可见性变化（移动端切换标签页）
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                if (rafId) {
-                    cancelAnimationFrame(rafId);
-                    rafId = null;
-                }
-            } else {
-                if (!rafId) {
-                    animate();
-                }
-            }
+        // 页面加载完成后初始化
+        window.addEventListener('load', function() {
+            setTimeout(init, 100);
+            setTimeout(updateUIPosition, 500);
         });
-
-        init();
         
-        // 初始化模式按钮状态
-        updateModeButtons();
+        // 监听安全区域变化
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateUIPosition);
+        }
     </script>
 </body>
 </html>
